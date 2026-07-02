@@ -1,0 +1,24 @@
+# Gradle files
+.gradle/
+build/
+app/build/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Local configuration
+local.properties
+
+# Log files
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project-specific zip/extract files (if any)
+inter.zip
+inter_extracted/

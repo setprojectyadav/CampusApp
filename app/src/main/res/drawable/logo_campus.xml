@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Outer Shield/Graduation shape -->
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M60,10 L105,32.5 L105,70 C105,92.5 60,110 60,110 C60,110 15,92.5 15,70 L15,32.5 Z"/>
+    <!-- Inner design details: Cap top -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,35 L90,47.5 L60,60 L30,47.5 Z"/>
+    <!-- Inner design details: Cap bottom -->
+    <path
+        android:fillColor="#EEF2FF"
+        android:pathData="M45,55 L45,67.5 C45,72 52,75 60,75 C68,75 75,72 75,67.5 L75,55 L60,61.25 Z"/>
+    <!-- Tassel -->
+    <path
+        android:fillColor="#14B8A6"
+        android:pathData="M60,47.5 L77.5,56 L77.5,70 L72.5,70 L72.5,58 Z"/>
+</vector>

@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "697758899175",
+    "project_id": "campusapp-e8435",
+    "storage_bucket": "campusapp-e8435.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:697758899175:android:f13debc21ab05613bb3b42",
+        "android_client_info": {
+          "package_name": "com.college.campusapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "697758899175-85oath0nmlfg3m4lmh8t36532rdrbv0k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.college.campusapp",
+            "certificate_hash": "c0d9664c5ae0e69442026eea0809d3892aa8c622"
+          }
+        },
+        {
+          "client_id": "697758899175-jb45md7nf8v887qd1neecpkdjsi6pie5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.college.campusapp",
+            "certificate_hash": "adef3700b9c595b538948859e23faf4f45fb2bc9"
+          }
+        },
+        {
+          "client_id": "697758899175-l4i0m9vf0e4itgad1699l1p6fqn9phsf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoRPnj_t42bxqoEQG-XtGV6l6R_r9e9hs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "697758899175-l4i0m9vf0e4itgad1699l1p6fqn9phsf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

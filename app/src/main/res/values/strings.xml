@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">CampusApp</string>
+    <string name="title_activity_auth">Student Sign In</string>
+    
+    <!-- Validation Error Strings -->
+    <string name="err_invalid_email">Please enter a valid email address</string>
+    <string name="err_invalid_phone">Please enter a valid 10-digit phone number</string>
+    <string name="err_weak_password">Password must be at least 8 chars with 1 letter, 1 number, and 1 symbol</string>
+    <string name="err_xss_threat">Dangerous characters detected in input!</string>
+    
+    <!-- Permissions Screen -->
+    <string name="permissions_desc">To enjoy CampusApp services, we require Notification and Location permissions.\n\nNote: If you deny these permissions, the app will exit.</string>
+    <string name="default_web_client_id">your_web_client_id_here</string>
+</resources>
