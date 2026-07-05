@@ -1288,29 +1288,69 @@ fun OrderProductScreenView(
                                 .weight(1f),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "Search for a product above to place an order.",
-                                    color = textSecondary,
-                                    fontSize = 14.sp,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Button(
-                                    onClick = { showCustomDialog = true },
-                                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                                    shape = AppTheme.ButtonShape
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                shape = AppTheme.CardShape,
+                                border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                colors = CardDefaults.cardColors(containerColor = AppTheme.Surface),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
                                 ) {
-                                    Text("+ Request Custom Item", fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text(
+                                        text = "Search for a product above to place an order",
+                                        color = AppTheme.InkSecondary,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 14.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Button(
+                                        onClick = { showCustomDialog = true },
+                                        colors = ButtonDefaults.buttonColors(containerColor = AppTheme.Primary),
+                                        shape = AppTheme.ButtonShape,
+                                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = android.R.drawable.ic_input_add),
+                                            contentDescription = "Add",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Request Custom Item",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .background(AppTheme.PrimarySoft, RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = "Canteen items & snacks delivered to your doorstep",
+                                            color = AppTheme.Primary,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "Canteen items & snacks delivered to your doorstep",
-                                    color = primaryColor,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
-                                    textAlign = TextAlign.Center
-                                )
                             }
                         }
                     } else {
