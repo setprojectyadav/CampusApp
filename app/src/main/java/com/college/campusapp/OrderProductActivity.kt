@@ -929,18 +929,26 @@ fun OrderProductScreenView(
                         
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        RangeSlider(
-                            value = priceConfigRange,
-                            onValueChange = { priceConfigRange = it },
-                            valueRange = 0f..1000f,
-                            colors = SliderDefaults.colors(
-                                activeTrackColor = primaryColor,
-                                thumbColor = primaryColor
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF8FAFC), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            RangeSlider(
+                                value = priceConfigRange,
+                                onValueChange = { priceConfigRange = it },
+                                valueRange = 0f..1000f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = primaryColor,
+                                    inactiveTrackColor = primaryColor.copy(alpha = 0.15f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                         
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Rider will verify real price and update your final bill.",
                             fontSize = 11.sp,
