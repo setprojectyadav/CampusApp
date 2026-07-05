@@ -69,9 +69,9 @@ object AppTheme {
     val InkSecondary = Color(0xFF6D7091)
     val InkTertiary = Color(0xFFA6A8C4)
 
-    val Primary = Color(0xFF5B4FE9)       // Electric indigo — brand
-    val PrimaryDark = Color(0xFF3F35C4)
-    val PrimarySoft = Color(0xFFEDEBFC)
+    val Primary = Color(0xFF0EA5E9)       // Premium Light Blue — brand
+    val PrimaryDark = Color(0xFF0284C7)   // Deep Sky Blue
+    val PrimarySoft = Color(0xFFE0F2FE)   // Soft Sky Blue
 
     val Accent = Color(0xFFFFB627)        // Sunburst — speed / energy
     val AccentSoft = Color(0xFFFFF3DC)
@@ -84,9 +84,9 @@ object AppTheme {
 
     val DividerColor = Color(0xFFE7E8F3)
 
-    val PrimaryGradient = Brush.linearGradient(listOf(Color(0xFF6C5CE9), Color(0xFF4B3FD1)))
+    val PrimaryGradient = Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0EA5E9)))
     val AccentGradient = Brush.linearGradient(listOf(Color(0xFFFFC94A), Color(0xFFFF9A3D)))
-    val HeroGradient = Brush.linearGradient(listOf(Color(0xFF241E5C), Color(0xFF4B3FD1)))
+    val HeroGradient = Brush.linearGradient(listOf(Color(0xFF0369A1), Color(0xFF0EA5E9)))
 
     val CardShape = RoundedCornerShape(18.dp)
     val ChipShape = RoundedCornerShape(50)
