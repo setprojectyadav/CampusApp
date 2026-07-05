@@ -1331,7 +1331,7 @@ fun OrderProductScreenView(
                             
                             // Bottom Aligned Content: Tagline in bigger, visible font
                             Text(
-                                text = "Canteen items & snacks delivered to your doorstep",
+                                text = "Canteen items & snacks delivered to your doorstep 🛵",
                                 color = AppTheme.InkSecondary,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp,
