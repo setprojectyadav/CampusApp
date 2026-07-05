@@ -1297,16 +1297,6 @@ fun OrderProductScreenView(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Text(
-                                    text = "Search for a product above to place an order",
-                                    color = AppTheme.InkSecondary,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 14.sp,
-                                    textAlign = TextAlign.Center
-                                )
-                                
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
                                 Button(
                                     onClick = { showCustomDialog = true },
                                     colors = ButtonDefaults.buttonColors(containerColor = AppTheme.Primary),
