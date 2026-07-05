@@ -916,15 +916,15 @@ fun OrderProductScreenView(
                             modifier = Modifier.fillMaxWidth()
                         )
                     } else {
-                        val minVal = (priceConfigRange.start / 5).toInt() * 5
                         val maxVal = (priceConfigRange.endInclusive / 5).toInt() * 5
                         
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Est. Min: ₹$minVal", fontWeight = FontWeight.Bold, color = textPrimary, fontSize = 13.sp)
-                            Text("Est. Max: ₹$maxVal", fontWeight = FontWeight.Bold, color = primaryColor, fontSize = 13.sp)
+                            Text("Estimated Price Limit:", fontWeight = FontWeight.Bold, color = textPrimary, fontSize = 13.sp)
+                            Text("₹$maxVal", fontWeight = FontWeight.Bold, color = primaryColor, fontSize = 16.sp)
                         }
                         
                         Spacer(modifier = Modifier.height(8.dp))
@@ -933,19 +933,58 @@ fun OrderProductScreenView(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(Color(0xFFF8FAFC), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            RangeSlider(
-                                value = priceConfigRange,
-                                onValueChange = { priceConfigRange = it },
-                                valueRange = 0f..1000f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = primaryColor,
-                                    inactiveTrackColor = primaryColor.copy(alpha = 0.15f)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Minus stepper button
+                                Card(
+                                    onClick = {
+                                        val newVal = (priceConfigRange.endInclusive - 10f).coerceAtLeast(0f)
+                                        priceConfigRange = 0f..newVal
+                                    },
+                                    shape = CircleShape,
+                                    border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text("-", fontWeight = FontWeight.Bold, color = primaryColor, fontSize = 18.sp)
+                                    }
+                                }
+
+                                // Single-thumb Slider
+                                Slider(
+                                    value = priceConfigRange.endInclusive,
+                                    onValueChange = { priceConfigRange = 0f..it },
+                                    valueRange = 0f..1000f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Color.White,
+                                        activeTrackColor = primaryColor,
+                                        inactiveTrackColor = primaryColor.copy(alpha = 0.15f)
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                // Plus stepper button
+                                Card(
+                                    onClick = {
+                                        val newVal = (priceConfigRange.endInclusive + 10f).coerceAtMost(1000f)
+                                        priceConfigRange = 0f..newVal
+                                    },
+                                    shape = CircleShape,
+                                    border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text("+", fontWeight = FontWeight.Bold, color = primaryColor, fontSize = 18.sp)
+                                    }
+                                }
+                            }
                         }
                         
                         Spacer(modifier = Modifier.height(8.dp))
