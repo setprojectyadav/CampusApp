@@ -1126,26 +1126,19 @@ fun OrderProductScreenView(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Welcome header section
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Campus Store ⚡",
-                            fontFamily = PoppinsFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
-                            color = textPrimary
-                        )
-                        Text(
-                            text = "Delivered directly to your hostel lobby",
-                            fontSize = 12.sp,
-                            color = textSecondary
-                        )
-                    }
-                    PulsingDeliveryBadge()
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Campus Store ⚡",
+                        fontFamily = PoppinsFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        color = textPrimary
+                    )
+                    Text(
+                        text = "Delivered directly to your hostel lobby",
+                        fontSize = 12.sp,
+                        color = textSecondary
+                    )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -1312,7 +1305,7 @@ fun OrderProductScreenView(
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "⚡ Canteen items & groceries delivered in 10 mins",
+                                    text = "⚡ Canteen items & groceries delivered directly to your hostel",
                                     color = primaryColor,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp,
