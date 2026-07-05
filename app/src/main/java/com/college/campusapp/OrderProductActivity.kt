@@ -1285,13 +1285,15 @@ fun OrderProductScreenView(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(1f),
+                                .weight(1f)
+                                .padding(bottom = 24.dp),
                             contentAlignment = Alignment.Center
                         ) {
+                            // Center Content: Search Prompt & Request Button
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(32.dp),
+                                    .padding(horizontal = 32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
@@ -1325,17 +1327,20 @@ fun OrderProductScreenView(
                                         color = Color.White
                                     )
                                 }
-                                
-                                Spacer(modifier = Modifier.height(24.dp))
-                                
-                                Text(
-                                    text = "Canteen items & snacks delivered to your doorstep",
-                                    color = AppTheme.InkTertiary,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 12.sp,
-                                    textAlign = TextAlign.Center
-                                )
                             }
+                            
+                            // Bottom Aligned Content: Tagline in bigger, visible font
+                            Text(
+                                text = "Canteen items & snacks delivered to your doorstep",
+                                color = AppTheme.InkSecondary,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            )
                         }
                     } else {
                         LazyColumn(
