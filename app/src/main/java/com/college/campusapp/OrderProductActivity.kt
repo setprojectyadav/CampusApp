@@ -1020,7 +1020,8 @@ fun OrderProductScreenView(
                             customName = it
                             customNameError = false 
                         },
-                        label = { Text("Product Name (e.g. Axe Signature Perfume)") },
+                        label = { Text("Product Name") },
+                        placeholder = { Text("e.g. Axe Signature Perfume") },
                         isError = customNameError,
                         singleLine = true,
                         shape = AppTheme.FieldShape,
@@ -1042,7 +1043,8 @@ fun OrderProductScreenView(
                     OutlinedTextField(
                         value = customBrand,
                         onValueChange = { customBrand = it },
-                        label = { Text("Brand Name (Optional)") },
+                        label = { Text("Brand (Optional)") },
+                        placeholder = { Text("e.g. Axe or Colgate") },
                         singleLine = true,
                         shape = AppTheme.FieldShape,
                         colors = OutlinedTextFieldDefaults.colors(
