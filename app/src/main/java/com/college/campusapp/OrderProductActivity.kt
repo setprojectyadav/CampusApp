@@ -1128,7 +1128,7 @@ fun OrderProductScreenView(
                 // Welcome header section
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Campus Store ⚡",
+                        text = "Campus Store",
                         fontFamily = PoppinsFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
