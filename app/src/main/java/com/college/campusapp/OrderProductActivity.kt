@@ -1142,15 +1142,15 @@ fun OrderProductScreenView(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Category Quick-Filter Chips (Claude warm minimal style)
+                                // Category Quick-Filter Chips (Option A - Gen Z Style)
                 val categories = remember {
                     listOf(
                         "All 🛍️" to "",
-                        "Snacks 🍟" to "chips",
-                        "Chocolates 🍫" to "chocolate",
-                        "Beverages 🥤" to "soda",
-                        "Biscuits 🍪" to "biscuit",
-                        "Instant 🍜" to "maggi"
+                        "Snack Cravings 🤤" to "chips",
+                        "Study Grind 📚" to "biscuit",
+                        "Hostel Essentials 📦" to "soap",
+                        "SOS Meds 🤒" to "med",
+                        "Caffeine Fix ☕" to "drink"
                     )
                 }
                 var selectedCategory by remember { mutableStateOf(0) }
