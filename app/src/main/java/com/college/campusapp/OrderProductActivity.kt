@@ -1305,7 +1305,7 @@ fun OrderProductScreenView(
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "⚡ Canteen items & groceries delivered directly to your hostel",
+                                    text = "Canteen items & snacks delivered to your doorstep",
                                     color = primaryColor,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp,
