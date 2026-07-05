@@ -101,6 +101,10 @@ class OrderProductActivity : ComponentActivity() {
 
     companion object {
         private const val GOOGLE_SHEETS_CSV_URL = "" // PUBLISH GOOGLE SHEET AS CSV AND PASTE HERE
+        
+        // Global static in-memory references to preserve cart contents across back presses
+        val globalCart = mutableStateMapOf<Product, Int>()
+        val globalPriceConfigs = mutableStateMapOf<String, PriceConfig>()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,9 +116,9 @@ class OrderProductActivity : ComponentActivity() {
             var isLoading by remember { mutableStateOf(false) }
             var searchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
             
-            // Cart State Map
-            val cart = remember { mutableStateMapOf<Product, Int>() }
-            val priceConfigs = remember { mutableStateMapOf<String, PriceConfig>() }
+            // Cart State Map (Reference global map to persist across back/forward navigation)
+            val cart = remember { globalCart }
+            val priceConfigs = remember { globalPriceConfigs }
             var overBudgetPolicy by remember { mutableStateOf("cancel") } // "cancel" or "buffer"
             var walletBalance by remember { mutableStateOf(0) }
             
