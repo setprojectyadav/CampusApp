@@ -112,6 +112,10 @@ class OrderProductActivity : ComponentActivity() {
         loadCatalog()
 
         setContent {
+            val primaryColor = AppTheme.Primary
+            val textPrimary = AppTheme.InkPrimary
+            val textSecondary = AppTheme.InkSecondary
+            
             var searchQuery by remember { mutableStateOf("") }
             var isLoading by remember { mutableStateOf(false) }
             var searchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
