@@ -1135,7 +1135,7 @@ fun OrderProductScreenView(
                         color = textPrimary
                     )
                     Text(
-                        text = "Delivered directly to your hostel lobby",
+                        text = "Get items delivered directly to your spot",
                         fontSize = 12.sp,
                         color = textSecondary
                     )
