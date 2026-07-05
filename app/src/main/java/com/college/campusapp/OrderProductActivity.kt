@@ -174,12 +174,96 @@ class OrderProductActivity : ComponentActivity() {
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             cart.forEach { (prod, qty) ->
-                                Text(
-                                    "•  ${prod.productName}  ×$qty",
-                                    color = AppTheme.InkSecondary,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(vertical = 2.dp)
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = prod.productName ?: "Product",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 13.sp,
+                                            color = textPrimary
+                                        )
+                                        val config = priceConfigs[prod.code ?: ""]
+                                        val desc = if (config != null) {
+                                            if (config.isUnknown) {
+                                                "Range: ₹${config.rangeMin} - ₹${config.rangeMax}"
+                                            } else {
+                                                "Price: ₹${config.exactPrice}"
+                                            }
+                                        } else {
+                                            "Custom Item"
+                                        }
+                                        Text(
+                                            text = desc,
+                                            fontSize = 11.sp,
+                                            color = textSecondary
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    
+                                    // Quantity Stepper Selector inside checkout basket list
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .border(1.dp, primaryColor, RoundedCornerShape(18.dp))
+                                            .background(Color.White, RoundedCornerShape(18.dp))
+                                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                                    ) {
+                                        // Minus Button (Decrements or removes when it reaches 0)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clickable {
+                                                    if (qty > 1) {
+                                                        cart[prod] = qty - 1
+                                                    } else {
+                                                        cart.remove(prod)
+                                                        priceConfigs.remove(prod.code ?: "")
+                                                    }
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "-",
+                                                color = primaryColor,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp
+                                            )
+                                        }
+                                        
+                                        // Quantity Text
+                                        Text(
+                                            text = qty.toString(),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = textPrimary,
+                                            modifier = Modifier.padding(horizontal = 8.dp)
+                                        )
+                                        
+                                        // Plus Button
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clickable {
+                                                    cart[prod] = qty + 1
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "+",
+                                                color = primaryColor,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp
+                                            )
+                                        }
+                                    }
+                                }
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                             Divider(color = AppTheme.DividerColor)
