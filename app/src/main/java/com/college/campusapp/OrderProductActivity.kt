@@ -1299,9 +1299,12 @@ fun OrderProductScreenView(
                             ) {
                                 Button(
                                     onClick = { showCustomDialog = true },
-                                    colors = ButtonDefaults.buttonColors(containerColor = AppTheme.Primary),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                                     shape = AppTheme.ButtonShape,
-                                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                                    modifier = Modifier
+                                        .shadow(6.dp, AppTheme.ButtonShape)
+                                        .background(AppTheme.PrimaryGradient, AppTheme.ButtonShape)
                                 ) {
                                     Icon(
                                         painter = painterResource(id = android.R.drawable.ic_input_add),
