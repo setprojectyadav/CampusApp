@@ -1324,12 +1324,13 @@ fun OrderProductScreenView(
                                 text = "Canteen items & snacks delivered to your doorstep 🛵",
                                 color = AppTheme.InkSecondary,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
+                                fontSize = 12.5.sp, // adjusted to prevent text wrapping on standard screens
+                                maxLines = 1,      // force tagline and emoji to stay on the exact same line
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
+                                    .padding(horizontal = 12.dp)
                             )
                         }
                     } else {
