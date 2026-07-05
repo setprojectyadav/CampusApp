@@ -941,44 +941,57 @@ fun OrderProductScreenView(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        val code = prod.code ?: ""
-                        if (!priceConfigIsUnknown && priceConfigExact.trim().isNotEmpty()) {
-                            priceConfigs[code] = PriceConfig(
-                                isUnknown = false,
-                                exactPrice = priceConfigExact.trim().toInt()
-                            )
-                        } else {
-                            val minVal = (priceConfigRange.start / 5).toInt() * 5
-                            val maxVal = (priceConfigRange.endInclusive / 5).toInt() * 5
-                            priceConfigs[code] = PriceConfig(
-                                isUnknown = true,
-                                rangeMin = minVal,
-                                rangeMax = maxVal
-                            )
-                        }
-                        priceConfigProduct = null
-                        priceConfigExact = ""
-                        priceConfigRange = 0f..300f
-                    },
-                    shape = AppTheme.ButtonShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Save Configuration")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    val code = prod.code ?: ""
-                    if (!priceConfigs.containsKey(code)) {
-                        priceConfigs[code] = PriceConfig(isUnknown = true, rangeMin = 0, rangeMax = 200)
+                    // Left: Cancel Button (Outlined)
+                    OutlinedButton(
+                        onClick = {
+                            val code = prod.code ?: ""
+                            if (!priceConfigs.containsKey(code)) {
+                                priceConfigs[code] = PriceConfig(isUnknown = true, rangeMin = 0, rangeMax = 200)
+                            }
+                            priceConfigProduct = null
+                            priceConfigExact = ""
+                            priceConfigRange = 0f..300f
+                        },
+                        shape = AppTheme.ButtonShape,
+                        border = BorderStroke(1.dp, AppTheme.DividerColor),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = textSecondary),
+                        modifier = Modifier.weight(1f).height(44.dp)
+                    ) {
+                        Text("Cancel", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
-                    priceConfigProduct = null
-                    priceConfigExact = ""
-                    priceConfigRange = 0f..300f
-                }) {
-                    Text("Cancel", color = textSecondary)
+
+                    // Right: Save Button (Solid Blue)
+                    Button(
+                        onClick = {
+                            val code = prod.code ?: ""
+                            if (!priceConfigIsUnknown && priceConfigExact.trim().isNotEmpty()) {
+                                priceConfigs[code] = PriceConfig(
+                                    isUnknown = false,
+                                    exactPrice = priceConfigExact.trim().toInt()
+                                )
+                            } else {
+                                val minVal = (priceConfigRange.start / 5).toInt() * 5
+                                val maxVal = (priceConfigRange.endInclusive / 5).toInt() * 5
+                                priceConfigs[code] = PriceConfig(
+                                    isUnknown = true,
+                                    rangeMin = minVal,
+                                    rangeMax = maxVal
+                                )
+                            }
+                            priceConfigProduct = null
+                            priceConfigExact = ""
+                            priceConfigRange = 0f..300f
+                        },
+                        shape = AppTheme.ButtonShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                        modifier = Modifier.weight(1f).height(44.dp)
+                    ) {
+                        Text("Save", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                    }
                 }
             }
         )
