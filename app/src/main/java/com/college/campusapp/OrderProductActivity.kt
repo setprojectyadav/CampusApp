@@ -1396,34 +1396,7 @@ fun OrderProductScreenView(
                                 )
                             }
 
-                            item {
-                                Card(
-                                    onClick = { showCustomDialog = true },
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                    shape = AppTheme.FieldShape,
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F5F0))
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = android.R.drawable.ic_input_add),
-                                            contentDescription = "Add Custom",
-                                            tint = primaryColor,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "Can't find what you need? Add a Custom Item",
-                                            color = primaryColor,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp
-                                        )
-                                    }
-                                }
-                            }
+
                         }
                     }
                 }
