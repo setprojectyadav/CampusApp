@@ -1296,6 +1296,14 @@ fun OrderProductScreenView(
                                     textAlign = TextAlign.Center
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = { showCustomDialog = true },
+                                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                    shape = AppTheme.ButtonShape
+                                ) {
+                                    Text("+ Request Custom Item", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = "Canteen items & snacks delivered to your doorstep",
                                     color = primaryColor,
