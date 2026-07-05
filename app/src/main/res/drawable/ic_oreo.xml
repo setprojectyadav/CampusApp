@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Blue Packaging Base -->
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M8,12 L56,12 A4,4 0,0,1 60,16 L60,48 A4,4 0,0,1 56,52 L8,52 A4,4 0,0,1 4,48 L4,16 A4,4 0,0,1 8,12 Z" />
+    <!-- White Oreo Logo Circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,32m-12,0a12,12 0,1,1 24,0a12,12 0,1,1 -24,0" />
+    <!-- Blue Inner circle detail -->
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M32,32m-10,0a10,10 0,1,1 20,0a10,10 0,1,1 -20,0" />
+    <!-- Stylized "OREO" Text/Shape in the center -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,30h3v4h-3v-4z M29,30h3v4h-3v-4z M34,30h3v4h-3v-4z M39,30h3v4h-3v-4z" />
+</vector>

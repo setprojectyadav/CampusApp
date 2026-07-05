@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Yellow Snack Bag Base -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M14,8 L50,8 A3,3 0,0,1 53,11 L53,53 A3,3 0,0,1 50,56 L14,56 A3,3 0,0,1 11,53 L11,11 A3,3 0,0,1 14,8 Z" />
+    <!-- Lays Golden Sun in center -->
+    <path
+        android:fillColor="#FF9100"
+        android:pathData="M32,32m-10,0a10,10 0,1,1 20,0a10,10 0,1,1 -20,0" />
+    <!-- Lays Red Banner crossing the sun -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M16,28 L48,26 L48,36 L16,38 Z" />
+</vector>

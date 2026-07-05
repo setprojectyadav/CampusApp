@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Amul Blue Sky background -->
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M32,4 A28,28 0,1,0 32,60 A28,28 0,1,0 32,4 Z" />
+    <!-- White milk drop splashes -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,42 C16,42 20,48 32,48 C44,48 48,42 48,42 C48,42 40,36 32,36 C24,36 16,42 16,42 Z" />
+    <!-- Amul Red Script Oval / Logo Base -->
+    <path
+        android:fillColor="#D50000"
+        android:pathData="M14,24 L50,22 C52,22 54,26 50,30 L18,34 C14,34 12,30 14,24 Z" />
+</vector>

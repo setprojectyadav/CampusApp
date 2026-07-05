@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Cadbury Dark Purple Base -->
+    <path
+        android:fillColor="#311B92"
+        android:pathData="M12,12 C12,6 52,6 52,12 L52,52 C52,58 12,58 12,52 Z" />
+    <!-- Golden Glass Logo Accent (Cadbury Glasses) -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M24,24c-2.2,0 -4,1.8 -4,4v8c0,2.2 1.8,4 4,4h4c2.2,0 4,-1.8 4,-4v-8c0,-2.2 -1.8,-4 -4,-4h-4z M36,24c-2.2,0 -4,1.8 -4,4v8c0,2.2 1.8,4 4,4h4c2.2,0 4,-1.8 4,-4v-8c0,-2.2 -1.8,-4 -4,-4h-4z" />
+    <!-- White liquid milk wave -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,28c2,0 3,2 5,2s3,-2 5,-2s3,2 5,2s3,-2 5,-2v10H24V28z" />
+</vector>

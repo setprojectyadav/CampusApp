@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Dettol Green Circle Base -->
+    <path
+        android:fillColor="#00796B"
+        android:pathData="M32,32m-28,0a28,28 0,1,1 56,0a28,28 0,1,1 -56,0" />
+    <!-- White Sword Hilt -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,48 L32,16 M28,22 L36,22"
+        android:strokeWidth="4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+    <!-- Shiny metallic sword glow -->
+    <path
+        android:fillColor="#E0F2F1"
+        android:pathData="M31,12 L33,12 L33,16 L31,16 Z" />
+</vector>

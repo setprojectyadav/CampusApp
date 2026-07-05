@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Colgate Red Shield Badge -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M6,16 L58,16 C58,16 58,40 32,48 C6,40 6,16 6,16 Z" />
+    <!-- White Colgate logo ribbon / wave -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,24 C24,24 28,34 38,34 C48,34 46,24 50,24 C50,24 48,38 38,38 C28,38 24,28 14,28 Z" />
+</vector>

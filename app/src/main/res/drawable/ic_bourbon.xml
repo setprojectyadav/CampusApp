@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Chocolate Brown Rectangular Biscuit -->
+    <path
+        android:fillColor="#3E2723"
+        android:pathData="M6,16 L58,16 A2,2 0,0,1 60,18 L60,46 A2,2 0,0,1 58,48 L6,48 A2,2 0,0,1 4,46 L4,18 A2,2 0,0,1 6,16 Z" />
+    <!-- Sugar Crystals / Holes -->
+    <path
+        android:fillColor="#E0F2F1"
+        android:pathData="M10,22h2v2h-2z M10,38h2v2h-2z M20,22h2v2h-2z M20,38h2v2h-2z M42,22h2v2h-2z M42,38h2v2h-2z M52,22h2v2h-2z M52,38h2v2h-2z" />
+    <!-- Bourbon Logo Text area -->
+    <path
+        android:fillColor="#D84315"
+        android:pathData="M24,28 L40,28 L40,36 L24,36 Z" />
+</vector>
