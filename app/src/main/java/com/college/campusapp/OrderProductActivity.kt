@@ -984,7 +984,7 @@ fun OrderProductScreenView(
         )
     }
 
-    // Custom Item Request Dialog
+    // Custom Item Request Dialog (Centered Title, AppTheme Card shape, Balanced Side-by-Side buttons)
     if (showCustomDialog) {
         AlertDialog(
             onDismissRequest = { 
@@ -994,7 +994,17 @@ fun OrderProductScreenView(
                 customPrice = ""
                 customNameError = false
             },
-            title = { Text("Request Custom Item", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+            shape = AppTheme.CardShape,
+            title = { 
+                Text(
+                    text = "Request Custom Item", 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 18.sp,
+                    color = textPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) 
+            },
             text = {
                 Column {
                     Text(
@@ -1046,44 +1056,57 @@ fun OrderProductScreenView(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        if (customName.trim().isEmpty()) {
-                            customNameError = true
-                        } else {
-                            val newProduct = Product(
-                                code = "custom_${System.currentTimeMillis()}",
-                                productName = customName.trim(),
-                                brands = if (customBrand.trim().isEmpty()) "Custom Request" else customBrand.trim(),
-                                imageUrl = ""
-                            )
-                            cart[newProduct] = 1
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Left: Cancel Button (Outlined, matches Design System)
+                    OutlinedButton(
+                        onClick = {
                             showCustomDialog = false
                             customName = ""
                             customBrand = ""
-                            
-                            // IMMEDIATELY TRIGGER THE PRICE CONFIG DIALOG FOR THIS NEW CUSTOM PRODUCT!
-                            priceConfigProduct = newProduct
-                            priceConfigIsUnknown = true
-                            priceConfigExact = ""
-                            priceConfigRange = 0f..300f
-                        }
-                    },
-                    shape = AppTheme.ButtonShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-                ) {
-                    Text("Add to Basket")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { 
-                    showCustomDialog = false
-                    customName = ""
-                    customBrand = ""
-                    customPrice = ""
-                    customNameError = false
-                }) {
-                    Text("Cancel", color = textSecondary)
+                            customPrice = ""
+                            customNameError = false
+                        },
+                        shape = AppTheme.ButtonShape,
+                        border = BorderStroke(1.dp, AppTheme.DividerColor),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = textSecondary),
+                        modifier = Modifier.weight(1f).height(44.dp)
+                    ) {
+                        Text("Cancel", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+
+                    // Right: Add to Basket Button (Filled, Premium Light Blue)
+                    Button(
+                        onClick = {
+                            if (customName.trim().isEmpty()) {
+                                customNameError = true
+                            } else {
+                                val newProduct = Product(
+                                    code = "custom_${System.currentTimeMillis()}",
+                                    productName = customName.trim(),
+                                    brands = if (customBrand.trim().isEmpty()) "Custom Request" else customBrand.trim(),
+                                    imageUrl = ""
+                                )
+                                cart[newProduct] = 1
+                                showCustomDialog = false
+                                customName = ""
+                                customBrand = ""
+                                
+                                // IMMEDIATELY TRIGGER THE PRICE CONFIG DIALOG FOR THIS NEW CUSTOM PRODUCT!
+                                priceConfigProduct = newProduct
+                                priceConfigIsUnknown = true
+                                priceConfigExact = ""
+                                priceConfigRange = 0f..300f
+                            }
+                        },
+                        shape = AppTheme.ButtonShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                        modifier = Modifier.weight(1f).height(44.dp)
+                    ) {
+                        Text("Add to Basket", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                    }
                 }
             }
         )
