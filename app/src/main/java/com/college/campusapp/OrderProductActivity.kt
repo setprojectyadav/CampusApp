@@ -843,7 +843,17 @@ fun OrderProductScreenView(
                 }
                 priceConfigProduct = null 
             },
-            title = { Text("Set Price Reference", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+            shape = AppTheme.CardShape,
+            title = {
+                Text(
+                    text = "Set Price Reference",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = textPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
             text = {
                 Column {
                     Text(
@@ -919,18 +929,123 @@ fun OrderProductScreenView(
                         
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        RangeSlider(
-                            value = priceConfigRange,
-                            onValueChange = { priceConfigRange = it },
-                            valueRange = 0f..1000f,
-                            colors = SliderDefaults.colors(
-                                activeTrackColor = primaryColor,
-                                thumbColor = primaryColor
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        // Overhauled Price Range Preset Selector
+                        val rangePresets = remember {
+                            listOf(
+                                "Under ₹50" to (0..50),
+                                "₹50 - ₹100" to (50..100),
+                                "₹100 - ₹200" to (100..200),
+                                "₹200 - ₹300" to (200..300),
+                                "Custom Range" to null
+                            )
+                        }
+                        var selectedPresetIndex by remember { mutableStateOf(0) }
+                        var customMinStr by remember { mutableStateOf("") }
+                        var customMaxStr by remember { mutableStateOf("") }
                         
-                        Spacer(modifier = Modifier.height(4.dp))
+                        // Sync current range state
+                        LaunchedEffect(priceConfigRange) {
+                            val curMin = priceConfigRange.start.toInt()
+                            val curMax = priceConfigRange.endInclusive.toInt()
+                            val matchIndex = rangePresets.indexOfFirst { (_, r) ->
+                                r != null && r.first == curMin && r.last == curMax
+                            }
+                            if (matchIndex != -1) {
+                                selectedPresetIndex = matchIndex
+                            } else {
+                                selectedPresetIndex = 4
+                                customMinStr = curMin.toString()
+                                customMaxStr = curMax.toString()
+                            }
+                        }
+                        
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            itemsIndexed(rangePresets) { index, (label, range) ->
+                                val isSelected = selectedPresetIndex == index
+                                Card(
+                                    onClick = {
+                                        selectedPresetIndex = index
+                                        if (range != null) {
+                                            priceConfigRange = range.first.toFloat()..range.last.toFloat()
+                                        }
+                                    },
+                                    shape = AppTheme.ChipShape,
+                                    border = BorderStroke(1.dp, if (isSelected) primaryColor else AppTheme.DividerColor),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (isSelected) AppTheme.PrimarySoft else Color.White
+                                    ),
+                                    modifier = Modifier.height(34.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxHeight().padding(horizontal = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 12.sp,
+                                            color = if (isSelected) primaryColor else textSecondary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (selectedPresetIndex == 4) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = customMinStr,
+                                    onValueChange = { 
+                                        val filtered = it.filter { it.isDigit() }
+                                        customMinStr = filtered
+                                        val minValInput = filtered.toIntOrNull() ?: 0
+                                        val maxValInput = customMaxStr.toIntOrNull() ?: 300
+                                        priceConfigRange = minValInput.toFloat()..maxValInput.toFloat()
+                                    },
+                                    label = { Text("Min (₹)") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    shape = AppTheme.FieldShape,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White,
+                                        focusedBorderColor = primaryColor,
+                                        unfocusedBorderColor = AppTheme.DividerColor
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OutlinedTextField(
+                                    value = customMaxStr,
+                                    onValueChange = { 
+                                        val filtered = it.filter { it.isDigit() }
+                                        customMaxStr = filtered
+                                        val minValInput = customMinStr.toIntOrNull() ?: 0
+                                        val maxValInput = filtered.toIntOrNull() ?: 300
+                                        priceConfigRange = minValInput.toFloat()..maxValInput.toFloat()
+                                    },
+                                    label = { Text("Max (₹)") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    shape = AppTheme.FieldShape,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White,
+                                        focusedBorderColor = primaryColor,
+                                        unfocusedBorderColor = AppTheme.DividerColor
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Rider will verify real price and update your final bill.",
                             fontSize = 11.sp,
@@ -974,12 +1089,12 @@ fun OrderProductScreenView(
                                     exactPrice = priceConfigExact.trim().toInt()
                                 )
                             } else {
-                                val minVal = (priceConfigRange.start / 5).toInt() * 5
-                                val maxVal = (priceConfigRange.endInclusive / 5).toInt() * 5
+                                val minValVal = (priceConfigRange.start / 5).toInt() * 5
+                                val maxValVal = (priceConfigRange.endInclusive / 5).toInt() * 5
                                 priceConfigs[code] = PriceConfig(
                                     isUnknown = true,
-                                    rangeMin = minVal,
-                                    rangeMax = maxVal
+                                    rangeMin = minValVal,
+                                    rangeMax = maxValVal
                                 )
                             }
                             priceConfigProduct = null
