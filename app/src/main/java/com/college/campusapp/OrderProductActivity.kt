@@ -2304,20 +2304,59 @@ fun ProductRowItem(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Brand Logo Circle Badge (Blinkit style: clean flat off-white circle)
-            Box(
+            // Mini Product Packet Mockup Card (Dynamic Name-based Packet illustration)
+            val firstWord = (product.productName ?: "Item").split(" ").firstOrNull()?.uppercase() ?: "ITEM"
+            val displayBrand = if (firstWord.length in 3..6) firstWord else getBrandAbbreviation(product).uppercase()
+            
+            val brandColor = when {
+                firstWord.contains("OREO") || firstWord.contains("BISCUIT") -> Color(0xFF0D47A1) // Oreo Royal Blue
+                firstWord.contains("COLA") || firstWord.contains("COKE") || firstWord.contains("PEPSI") || firstWord.contains("DRINK") -> Color(0xFFC8102E) // Cola Red
+                firstWord.contains("LAY") || firstWord.contains("CHIP") || firstWord.contains("KURKURE") -> Color(0xFFD4AF37) // Golden Chips Yellow
+                firstWord.contains("MED") || firstWord.contains("SOS") || firstWord.contains("TABLET") -> Color(0xFF0F766E) // Meds Teal
+                firstWord.contains("PENCIL") || firstWord.contains("BOOK") || firstWord.contains("NOTE") || firstWord.contains("PEN") -> Color(0xFF475569) // Slate grey
+                else -> primaryColor // Electric Indigo Theme color
+            }
+
+            Card(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(AppTheme.SurfaceMuted),
-                contentAlignment = Alignment.Center
+                    .width(44.dp)
+                    .height(52.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = brandColor),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Image(
-                    painter = painterResource(id = style.iconResId),
-                    contentDescription = product.productName,
-                    modifier = Modifier.size(30.dp),
-                    contentScale = ContentScale.Fit
-                )
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Top sealing crimp line of package
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .background(Color.White.copy(alpha = 0.25f))
+                    )
+                    
+                    // Brand text center stage
+                    Text(
+                        text = displayBrand,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 9.sp,
+                        letterSpacing = 0.2.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 2.dp)
+                    )
+                    
+                    // Bottom sealing crimp line of package
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .background(Color.White.copy(alpha = 0.25f))
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
