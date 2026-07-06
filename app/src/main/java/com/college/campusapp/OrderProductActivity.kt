@@ -250,7 +250,7 @@ class OrderProductActivity : ComponentActivity() {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(12.dp)
-                                        .maxHeight(150.dp)
+                                        .heightIn(max = 150.dp)
                                         .verticalScroll(rememberScrollState())
                                 ) {
                                     cart.forEach { (prod, qty) ->
