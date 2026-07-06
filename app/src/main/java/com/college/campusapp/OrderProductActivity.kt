@@ -1140,12 +1140,29 @@ fun OrderProductScreenView(
                         }
                         
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Rider will verify real price and update your final bill.",
-                            fontSize = 11.sp,
-                            color = textSecondary,
-                            fontStyle = FontStyle.Italic
-                        )
+Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Premium Wallet Info Banner inside Dialog
+                        Card(
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(0xFFD1FAE5)), // Soft mint border
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)), // Soft mint background
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("💡", fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Any surplus money from estimates will be instantly refunded to your Wallet once the rider buys the item.",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF065F46) // Dark green text
+                                )
+                            }
+                        }
                     }
                 }
             },
@@ -2198,7 +2215,7 @@ fun OrderProductScreenView(
                                         Divider(modifier = Modifier.padding(vertical = 12.dp), color = AppTheme.DividerColor)
 
                                         // Total Pay Row
-                                        Row(
+        Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
@@ -2209,6 +2226,29 @@ fun OrderProductScreenView(
                                             }
                                             val totalText = if (totalMin == totalMax) "₹$totalMin" else "₹$totalMin - ₹$totalMax"
                                             Text(totalText, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, color = primaryColor)
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Divider(color = AppTheme.DividerColor)
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        
+                                        // Wallet Note in Bill details card
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(Color(0xFFECFDF5), RoundedCornerShape(8.dp))
+                                                .border(1.5.dp, Color(0xFFD1FAE5), RoundedCornerShape(8.dp))
+                                                .padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("ℹ️", fontSize = 14.sp)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Since your order contains estimated prices, any leftover change will be automatically refunded back to your App Wallet.",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color(0xFF065F46)
+                                            )
                                         }
                                     }
                                 }
