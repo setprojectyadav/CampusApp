@@ -30,6 +30,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -2212,18 +2216,13 @@ fun OrderProductScreenView(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Checkout Confirm Button
-                            Button(
-                                onClick = onSubmitClick,
+                            // Checkout Confirm Swipe Button
+                            SwipeToPlaceOrderButton(
                                 enabled = autopayEnabled,
-                                shape = AppTheme.ButtonShape,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-                            ) {
-                                Text("Place Secure Order", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
-                            }
+                                onSubmit = onSubmitClick,
+                                primaryColor = primaryColor,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -2432,6 +2431,94 @@ private fun PulsingDeliveryBadge() {
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+@Composable
+fun SwipeToPlaceOrderButton(
+    enabled: Boolean,
+    onSubmit: () -> Unit,
+    primaryColor: Color,
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(if (enabled) primaryColor.copy(alpha = 0.15f) else Color(0xFFF1F5F9))
+            .border(1.dp, if (enabled) primaryColor.copy(alpha = 0.3f) else Color(0xFFE2E8F0), RoundedCornerShape(28.dp)),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        val widthPx = constraints.maxWidth.toFloat()
+        val density = LocalDensity.current
+        val thumbSizePx = with(density) { 48.dp.toPx() }
+        val paddingPx = with(density) { 8.dp.toPx() }
+        val maxDragPx = (widthPx - thumbSizePx - paddingPx).coerceAtLeast(0f)
+        
+        var dragOffset by remember { mutableStateOf(0f) }
+        val animatedOffset by animateFloatAsState(
+            targetValue = dragOffset,
+            animationSpec = spring(stiffness = Spring.StiffnessMedium)
+        )
+        
+        // Reset drag offset when disabled
+        LaunchedEffect(enabled) {
+            if (!enabled) {
+                dragOffset = 0f
+            }
+        }
+        
+        // Track Text Hint
+        Text(
+            text = if (enabled) "Swipe to Place Order ➔" else "Authorize AutoPay to Order",
+            color = if (enabled) primaryColor else Color(0xFF94A3B8),
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            modifier = Modifier.align(Alignment.Center)
+        )
+        
+        // Drag Thumb
+        val thumbOffsetDp = with(density) { animatedOffset.toDp() }
+        
+        Box(
+            modifier = Modifier
+                .padding(4.dp)
+                .offset(x = thumbOffsetDp)
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(if (enabled) primaryColor else Color(0xFFCBD5E1))
+                .pointerInput(enabled) {
+                    if (enabled) {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                if (dragOffset >= maxDragPx * 0.85f) {
+                                    dragOffset = maxDragPx
+                                    onSubmit()
+                                    // Smooth reset after trigger
+                                    dragOffset = 0f
+                                } else {
+                                    dragOffset = 0f
+                                }
+                            },
+                            onDragCancel = {
+                                dragOffset = 0f
+                            },
+                            onHorizontalDrag = { _, dragAmount ->
+                                dragOffset = (dragOffset + dragAmount).coerceIn(0f, maxDragPx)
+                            }
+                        )
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "➔",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        }
     }
 }
 
