@@ -183,110 +183,80 @@ class OrderProductActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(24.dp),
+                                .padding(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Pulsing / Glowing Success Ring
-                            Box(
-                                modifier = Modifier
-                                    .size(72.dp)
-                                    .background(AppTheme.SuccessSoft, CircleShape)
-                                    .border(2.dp, AppTheme.Success.copy(alpha = 0.4f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("🎉", fontSize = 36.sp)
-                            }
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
                             Text(
-                                text = "Order Placed!",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 22.sp,
+                                text = "Order Placed Successfully",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
                                 color = AppTheme.InkPrimary,
                                 textAlign = TextAlign.Center
                             )
                             
-                            Text(
-                                text = "Your request has been securely dispatched",
-                                fontSize = 12.sp,
-                                color = AppTheme.InkSecondary,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
-                            )
-                            
-                            // Delivery Ticket Box
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = AppTheme.Background),
-                                border = BorderStroke(1.dp, AppTheme.DividerColor)
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("🛵", fontSize = 20.sp)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text(
-                                                text = "Delivery to $dropPoint",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                                color = AppTheme.InkPrimary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = "From: $pickPoint",
-                                                fontSize = 10.sp,
-                                                color = AppTheme.InkSecondary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            
                             Spacer(modifier = Modifier.height(16.dp))
                             
-                            // Digital Receipt Section
+                            // The Minimalist Invoice Card (combines Address & Payments)
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
                                 border = BorderStroke(1.dp, AppTheme.DividerColor)
                             ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    // 1. Delivery Info Section
                                     Text(
-                                        text = "Payment Receipt",
+                                        text = "DELIVERY DETAILS",
                                         fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        letterSpacing = 1.sp,
+                                        color = AppTheme.InkTertiary
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "From: $pickPoint",
                                         fontSize = 12.sp,
                                         color = AppTheme.InkPrimary,
-                                        modifier = Modifier.padding(bottom = 8.dp)
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "To: $dropPoint",
+                                        fontSize = 12.sp,
+                                        color = AppTheme.InkPrimary,
+                                        fontWeight = FontWeight.Medium
                                     )
                                     
-                                    // Scrollable Items list
+                                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = AppTheme.DividerColor)
+                                    
+                                    // 2. Items List Section
+                                    Text(
+                                        text = "ITEMS ORDERED",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        letterSpacing = 1.sp,
+                                        color = AppTheme.InkTertiary
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    
                                     Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .heightIn(max = 120.dp)
+                                            .heightIn(max = 100.dp)
                                             .verticalScroll(rememberScrollState())
                                     ) {
                                         cart.forEach { (prod, qty) ->
                                             Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(vertical = 4.dp),
+                                                    .padding(vertical = 3.dp),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
@@ -303,7 +273,6 @@ class OrderProductActivity : ComponentActivity() {
                                                         color = textSecondary
                                                     )
                                                 }
-                                                // Item calculated price
                                                 val config = priceConfigs[prod.code ?: ""]
                                                 val priceText = if (config != null) {
                                                     if (config.isUnknown) {
@@ -324,9 +293,9 @@ class OrderProductActivity : ComponentActivity() {
                                         }
                                     }
                                     
-                                    Divider(modifier = Modifier.padding(vertical = 10.dp), color = AppTheme.DividerColor)
+                                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = AppTheme.DividerColor)
                                     
-                                    // Subtotal Row
+                                    // 3. Payment Details Section
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -335,8 +304,6 @@ class OrderProductActivity : ComponentActivity() {
                                         val subtotalText = if (rMinSubtotal == rMaxSubtotal) "₹$rMinSubtotal" else "₹$rMinSubtotal - ₹$rMaxSubtotal"
                                         Text(subtotalText, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = textPrimary)
                                     }
-                                    
-                                    // Delivery & Handling Row
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -350,22 +317,20 @@ class OrderProductActivity : ComponentActivity() {
                                     
                                     Divider(modifier = Modifier.padding(vertical = 8.dp), color = AppTheme.DividerColor)
                                     
-                                    // Total Row
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("Total Expected Pay", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = textPrimary)
+                                        Text("Total Expected Pay", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textPrimary)
                                         val totalText = if (rTotalMin == rTotalMax) "₹$rTotalMin" else "₹$rTotalMin - ₹$rTotalMax"
-                                        Text(totalText, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = primaryColor)
+                                        Text(totalText, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = primaryColor)
                                     }
                                 }
                             }
                             
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
                             
-                            // Continue Button
                             Button(
                                 onClick = {
                                     showOrderSuccess = false
