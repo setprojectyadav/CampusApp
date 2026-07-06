@@ -1591,316 +1591,379 @@ fun OrderProductScreenView(
                         .clickable { showCheckout = false }
                 )
 
-                // The Drawer container
+                // The Drawer container (Premium Overhauled Slide-up Sheet)
                 Card(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .fillMaxHeight(0.8f)
+                        .fillMaxHeight(0.85f)
                         .clickable(enabled = false) {},
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = AppTheme.Background), // Soft slate background
                     elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                            .padding(top = 8.dp)
                     ) {
-                        // Premium Native Bottom Sheet Grab Handle
+                        // Premium Grab Handle
                         Box(
                             modifier = Modifier
                                 .width(36.dp)
                                 .height(4.dp)
-                                .background(Color(0xFFECE7E1))
+                                .background(Color(0xFFE2E8F0))
                                 .clip(CircleShape)
                                 .align(Alignment.CenterHorizontally)
                         )
+                        
                         Spacer(modifier = Modifier.height(12.dp))
-                        // Header row
+                        
+                        // Header Row
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Review Order Summary",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = textPrimary
+                                fontSize = 19.sp,
+                                color = AppTheme.InkPrimary
                             )
-                            IconButton(onClick = { showCheckout = false }) {
-                                Text("✕", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textSecondary)
+                            Card(
+                                onClick = { showCheckout = false },
+                                shape = CircleShape,
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("✕", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AppTheme.InkSecondary)
+                                }
                             }
                         }
 
-                        Divider(modifier = Modifier.padding(vertical = 12.dp))
+                        Divider(modifier = Modifier.padding(top = 8.dp), color = AppTheme.DividerColor)
 
-                        // Scrollable Area (Cart details & Forms)
+                        // Scrollable Area
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp, vertical = 16.dp)
                         ) {
-                            Text(
-                                text = "Basket Items:",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = textPrimary,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-
-                            cart.forEach { (prod, qty) ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = prod.productName ?: "Product",
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 13.sp,
-                                            color = textPrimary
-                                        )
-                                        val config = priceConfigs[prod.code ?: ""]
-                                        val desc = if (config != null) {
-                                            if (config.isUnknown) {
-                                                "Range: ₹${config.rangeMin} - ₹${config.rangeMax}"
-                                            } else {
-                                                "Price: ₹${config.exactPrice}"
-                                            }
-                                        } else {
-                                            "Custom Item"
-                                        }
-                                        Text(
-                                            text = desc,
-                                            fontSize = 11.sp,
-                                            color = textSecondary
-                                        )
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    
-                                    // Quantity Stepper Selector inside checkout basket list
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .border(1.dp, primaryColor, RoundedCornerShape(18.dp))
-                                            .background(Color.White, RoundedCornerShape(18.dp))
-                                            .padding(horizontal = 6.dp, vertical = 3.dp)
-                                    ) {
-                                        // Minus Button (Decrements or removes when it reaches 0)
-                                        Box(
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .clickable {
-                                                    if (qty > 1) {
-                                                        cart[prod] = qty - 1
-                                                    } else {
-                                                        cart.remove(prod)
-                                                        priceConfigs.remove(prod.code ?: "")
-                                                    }
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "-",
-                                                color = primaryColor,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 15.sp
-                                            )
-                                        }
-                                        
-                                        // Quantity Text
-                                        Text(
-                                            text = qty.toString(),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            color = textPrimary,
-                                            modifier = Modifier.padding(horizontal = 8.dp)
-                                        )
-                                        
-                                        // Plus Button
-                                        Box(
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .clickable {
-                                                    cart[prod] = qty + 1
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "+",
-                                                color = primaryColor,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 15.sp
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Divider(modifier = Modifier.padding(vertical = 16.dp))
-
-                            // Delivery location form
-                            Text(
-                                text = "Delivery Details:",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = textPrimary,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-
-                            OutlinedTextField(
-                                value = pickPoint,
-                                onValueChange = onPickChange,
-                                label = { Text("Pick Up Location (e.g. Campus Store)") },
-                                isError = pickError.isNotEmpty(),
-                                singleLine = true,
-                                shape = AppTheme.FieldShape,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = primaryColor,
-                                    unfocusedBorderColor = Color(0xFFECE7E1),
-                                    errorBorderColor = Color(0xFFEF4444)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            if (pickError.isNotEmpty()) {
-                                Text(
-                                    text = pickError,
-                                    color = Color.Red,
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp)
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-
-                            OutlinedTextField(
-                                value = dropPoint,
-                                onValueChange = onDropChange,
-                                label = { Text("Drop Off Spot (e.g. Block C Room 204)") },
-                                isError = dropError.isNotEmpty(),
-                                singleLine = true,
-                                shape = AppTheme.FieldShape,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = primaryColor,
-                                    unfocusedBorderColor = Color(0xFFECE7E1),
-                                    errorBorderColor = Color(0xFFEF4444)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            if (dropError.isNotEmpty()) {
-                                Text(
-                                    text = dropError,
-                                    color = Color.Red,
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp)
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-
-                            OutlinedTextField(
-                                value = instructions,
-                                onValueChange = onInstructionsChange,
-                                label = { Text("Delivery Instructions (Optional)") },
-                                singleLine = true,
-                                shape = AppTheme.FieldShape,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = primaryColor,
-                                    unfocusedBorderColor = Color(0xFFECE7E1)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Over-Budget Policy Selector
-                            Text(
-                                text = "If actual price exceeds catalog/estimated price:",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = textPrimary,
-                                modifier = Modifier.padding(bottom = 6.dp)
-                            )
+                            // CARD 1: Basket Items List
                             Card(
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                                shape = AppTheme.FieldShape,
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)), // Off-white clean background card
-                                border = BorderStroke(1.dp, Color(0xFFECE7E1))
+                                shape = AppTheme.CardShape,
+                                border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                colors = CardDefaults.cardColors(containerColor = Color.White)
                             ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    // Option B Checkbox Row
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { onPolicyChange("cancel") }
-                                            .padding(vertical = 4.dp)
-                                    ) {
-                                        Checkbox(
-                                            checked = overBudgetPolicy == "cancel",
-                                            onCheckedChange = { if (it) onPolicyChange("cancel") },
-                                            colors = CheckboxDefaults.colors(checkedColor = primaryColor)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text("Cancel this item only", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = textPrimary)
-                                            Text("Rider skips this item but buys the rest of your cart", fontSize = 10.sp, color = textSecondary)
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    // Option C Checkbox Row
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { onPolicyChange("buffer") }
-                                            .padding(vertical = 4.dp)
-                                    ) {
-                                        Checkbox(
-                                            checked = overBudgetPolicy == "buffer",
-                                            onCheckedChange = { if (it) onPolicyChange("buffer") },
-                                            colors = CheckboxDefaults.colors(checkedColor = primaryColor)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text("Buy it anyway", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = textPrimary)
-                                            Text("Auto-approves price differences to avoid counter delays", fontSize = 10.sp, color = textSecondary)
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = "Basket Items",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = AppTheme.InkPrimary,
+                                        modifier = Modifier.padding(bottom = 12.dp)
+                                    )
+                                    
+                                    cart.forEach { (prod, qty) ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = prod.productName ?: "Product",
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 13.sp,
+                                                    color = textPrimary
+                                                )
+                                                val config = priceConfigs[prod.code ?: ""]
+                                                val desc = if (config != null) {
+                                                    if (config.isUnknown) {
+                                                        "Range: ₹${config.rangeMin} - ₹${config.rangeMax}"
+                                                    } else {
+                                                        "Price: ₹${config.exactPrice}"
+                                                    }
+                                                } else {
+                                                    "Custom Item"
+                                                }
+                                                Text(
+                                                    text = desc,
+                                                    fontSize = 11.sp,
+                                                    color = textSecondary
+                                                )
+                                            }
+                                            
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            
+                                            // Quantity Stepper Selector inside checkout basket list
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .border(1.dp, primaryColor, RoundedCornerShape(18.dp))
+                                                    .background(Color.White, RoundedCornerShape(18.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 3.dp)
+                                            ) {
+                                                // Minus Button (Decrements or removes when it reaches 0)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                        .clickable {
+                                                            if (qty > 1) {
+                                                                cart[prod] = qty - 1
+                                                            } else {
+                                                                cart.remove(prod)
+                                                                priceConfigs.remove(prod.code ?: "")
+                                                            }
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "-",
+                                                        color = primaryColor,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 15.sp
+                                                    )
+                                                }
+                                                
+                                                // Quantity Text
+                                                Text(
+                                                    text = qty.toString(),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp,
+                                                    color = textPrimary,
+                                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                                )
+                                                
+                                                // Plus Button
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                        .clickable {
+                                                            cart[prod] = qty + 1
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "+",
+                                                        color = primaryColor,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 15.sp
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
 
-                            // AutoPay Switch
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
+                            // CARD 2: Delivery Details Form
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                                shape = AppTheme.CardShape,
+                                border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                colors = CardDefaults.cardColors(containerColor = Color.White)
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Authorize AutoPay", fontWeight = FontWeight.Bold, color = textPrimary, fontSize = 14.sp)
-                                    Text("Toggle switch to approve secure payments", fontSize = 11.sp, color = textSecondary)
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = "Delivery Details",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = AppTheme.InkPrimary,
+                                        modifier = Modifier.padding(bottom = 12.dp)
+                                    )
+                                    
+                                    OutlinedTextField(
+                                        value = pickPoint,
+                                        onValueChange = onPickChange,
+                                        label = { Text("Pick Up Location (e.g. Campus Store)") },
+                                        isError = pickError.isNotEmpty(),
+                                        singleLine = true,
+                                        shape = AppTheme.FieldShape,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = Color.White,
+                                            unfocusedContainerColor = Color(0xFFF8FAFC),
+                                            focusedBorderColor = primaryColor,
+                                            unfocusedBorderColor = AppTheme.DividerColor,
+                                            errorBorderColor = Color(0xFFEF4444)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    if (pickError.isNotEmpty()) {
+                                        Text(
+                                            text = pickError,
+                                            color = Color.Red,
+                                            fontSize = 11.sp,
+                                            modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp)
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                    }
+                                    
+                                    OutlinedTextField(
+                                        value = dropPoint,
+                                        onValueChange = onDropChange,
+                                        label = { Text("Drop Off Spot (e.g. Block C Room 204)") },
+                                        isError = dropError.isNotEmpty(),
+                                        singleLine = true,
+                                        shape = AppTheme.FieldShape,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = Color.White,
+                                            unfocusedContainerColor = Color(0xFFF8FAFC),
+                                            focusedBorderColor = primaryColor,
+                                            unfocusedBorderColor = AppTheme.DividerColor,
+                                            errorBorderColor = Color(0xFFEF4444)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    if (dropError.isNotEmpty()) {
+                                        Text(
+                                            text = dropError,
+                                            color = Color.Red,
+                                            fontSize = 11.sp,
+                                            modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp)
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                    }
+                                    
+                                    OutlinedTextField(
+                                        value = instructions,
+                                        onValueChange = onInstructionsChange,
+                                        label = { Text("Delivery Instructions (Optional)") },
+                                        singleLine = true,
+                                        shape = AppTheme.FieldShape,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = Color.White,
+                                            unfocusedContainerColor = Color(0xFFF8FAFC),
+                                            focusedBorderColor = primaryColor,
+                                            unfocusedBorderColor = AppTheme.DividerColor
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
                                 }
-                                Switch(
-                                    checked = autopayEnabled,
-                                    onCheckedChange = onAutopayChange,
-                                    colors = SwitchDefaults.colors(checkedThumbColor = primaryColor)
-                                )
                             }
 
+                            // CARD 3: Preferences & AutoPay Settings
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                                shape = AppTheme.CardShape,
+                                border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                colors = CardDefaults.cardColors(containerColor = Color.White)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = "If price exceeds catalog / estimate:",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = AppTheme.InkPrimary,
+                                        modifier = Modifier.padding(bottom = 10.dp)
+                                    )
+                                    
+                                    // Segmented Policy Selector
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // Policy Option 1
+                                        val cancelSelected = overBudgetPolicy == "cancel"
+                                        Card(
+                                            onClick = { onPolicyChange("cancel") },
+                                            shape = AppTheme.FieldShape,
+                                            border = BorderStroke(1.dp, if (cancelSelected) primaryColor else AppTheme.DividerColor),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (cancelSelected) AppTheme.PrimarySoft else Color.White
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(12.dp)
+                                            ) {
+                                                RadioButton(
+                                                    selected = cancelSelected,
+                                                    onClick = { onPolicyChange("cancel") },
+                                                    colors = RadioButtonDefaults.colors(selectedColor = primaryColor)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Column {
+                                                    Text("Cancel this item only", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = textPrimary)
+                                                    Text("Rider skips this item but buys the rest of your cart", fontSize = 10.sp, color = textSecondary)
+                                                }
+                                            }
+                                        }
+
+                                        // Policy Option 2
+                                        val bufferSelected = overBudgetPolicy == "buffer"
+                                        Card(
+                                            onClick = { onPolicyChange("buffer") },
+                                            shape = AppTheme.FieldShape,
+                                            border = BorderStroke(1.dp, if (bufferSelected) primaryColor else AppTheme.DividerColor),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (bufferSelected) AppTheme.PrimarySoft else Color.White
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(12.dp)
+                                            ) {
+                                                RadioButton(
+                                                    selected = bufferSelected,
+                                                    onClick = { onPolicyChange("buffer") },
+                                                    colors = RadioButtonDefaults.colors(selectedColor = primaryColor)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Column {
+                                                    Text("Buy it anyway", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = textPrimary)
+                                                    Text("Auto-approves price differences to avoid counter delays", fontSize = 10.sp, color = textSecondary)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = AppTheme.DividerColor)
+
+                                    // AutoPay Switch Row
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Authorize AutoPay 🛡️", 
+                                                fontWeight = FontWeight.Bold, 
+                                                color = textPrimary, 
+                                                fontSize = 14.sp
+                                            )
+                                            Text(
+                                                text = "Toggle switch to approve secure payments", 
+                                                fontSize = 11.sp, 
+                                                color = textSecondary
+                                            )
+                                        }
+                                        Switch(
+                                            checked = autopayEnabled,
+                                            onCheckedChange = onAutopayChange,
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = Color.White,
+                                                checkedTrackColor = primaryColor
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+
+                            // CARD 4: Bill Summary Breakdown
                             var fixedTotal = 0
                             var estMinTotal = 0
                             var estMaxTotal = 0
@@ -1919,15 +1982,12 @@ fun OrderProductScreenView(
                                     }
                                 }
                             }
-                            
+
                             if (hasEstimate) {
-                                Spacer(modifier = Modifier.height(20.dp))
-                                
                                 val itemsMinSubtotal = fixedTotal + estMinTotal
                                 val itemsMaxSubtotal = fixedTotal + estMaxTotal
                                 val totalQuantity = cart.values.sum()
 
-                                // Calculate Dynamic Delivery Fee based on Subtotal & Item Count (Range: ₹20 - ₹30)
                                 val deliveryMin = (20 + (if (itemsMinSubtotal < 100) 5 else 0) + (if (totalQuantity > 3) (totalQuantity - 3) * 2 else 0)).coerceIn(20, 30)
                                 val deliveryMax = (20 + (if (itemsMaxSubtotal < 100) 5 else 0) + (if (totalQuantity > 3) (totalQuantity - 3) * 2 else 0)).coerceIn(20, 30)
                                 
@@ -1937,95 +1997,111 @@ fun OrderProductScreenView(
                                 val totalMin = itemsMinSubtotal + deliveryMin + handlingFee + hostelPremium
                                 val totalMax = itemsMaxSubtotal + deliveryMax + handlingFee + hostelPremium
 
-                                // Item Subtotal
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+                                    shape = AppTheme.CardShape,
+                                    border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White)
                                 ) {
-                                    Text("Item sub total", fontSize = 13.sp, color = textSecondary)
-                                    val subtotalText = if (itemsMinSubtotal == itemsMaxSubtotal) "₹$itemsMinSubtotal" else "₹$itemsMinSubtotal - ₹$itemsMaxSubtotal"
-                                    Text(subtotalText, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textPrimary)
-                                }
-
-                                // Delivery Fee
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Delivery Fee", fontSize = 13.sp, color = textSecondary)
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                    Column(modifier = Modifier.padding(16.dp)) {
                                         Text(
-                                            text = "Dynamic",
-                                            fontSize = 9.sp,
+                                            text = "Bill Details",
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF5C1D8D),
-                                            modifier = Modifier
-                                                .background(Color(0xFFF3E8FF), RoundedCornerShape(4.dp))
-                                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                                            fontSize = 14.sp,
+                                            color = AppTheme.InkPrimary,
+                                            modifier = Modifier.padding(bottom = 12.dp)
                                         )
+
+                                        // Item Subtotal Row
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Item sub total", fontSize = 13.sp, color = textSecondary)
+                                            val subtotalText = if (itemsMinSubtotal == itemsMaxSubtotal) "₹$itemsMinSubtotal" else "₹$itemsMinSubtotal - ₹$itemsMaxSubtotal"
+                                            Text(subtotalText, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textPrimary)
+                                        }
+
+                                        // Delivery Fee Row
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("Delivery Fee", fontSize = 13.sp, color = textSecondary)
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Dynamic",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF0369A1),
+                                                    modifier = Modifier
+                                                        .background(AppTheme.PrimarySoft, RoundedCornerShape(4.dp))
+                                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                            val delMinVal = minOf(deliveryMin, deliveryMax)
+                                            val delMaxVal = maxOf(deliveryMin, deliveryMax)
+                                            val deliveryText = if (delMinVal == delMaxVal) "₹$delMinVal" else "₹$delMinVal - ₹$delMaxVal"
+                                            Text(deliveryText, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textPrimary)
+                                        }
+
+                                        // Handling Fee Row
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Handling Fee", fontSize = 13.sp, color = textSecondary)
+                                            Text("₹$handlingFee", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textPrimary)
+                                        }
+
+                                        // Hostel Premium Fee Row
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("Hostel gate premium fee", fontSize = 13.sp, color = textSecondary)
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Hostel Gate",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF047857),
+                                                    modifier = Modifier
+                                                        .background(Color(0xFFD1FAE5), RoundedCornerShape(4.dp))
+                                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                            Text("₹$hostelPremium", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textPrimary)
+                                        }
+
+                                        Divider(modifier = Modifier.padding(vertical = 12.dp), color = AppTheme.DividerColor)
+
+                                        // Total Pay Row
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text("Total Expected Pay:", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = textPrimary)
+                                                Text("Includes ₹$hostelPremium hostel gate premium", fontSize = 9.sp, color = textSecondary)
+                                            }
+                                            val totalText = if (totalMin == totalMax) "₹$totalMin" else "₹$totalMin - ₹$totalMax"
+                                            Text(totalText, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, color = primaryColor)
+                                        }
                                     }
-                                    val delMinVal = minOf(deliveryMin, deliveryMax)
-                                    val delMaxVal = maxOf(deliveryMin, deliveryMax)
-                                    val deliveryText = if (delMinVal == delMaxVal) "₹$delMinVal" else "₹$delMinVal - ₹$delMaxVal"
-                                    Text(deliveryText, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textPrimary)
-                                }
-
-                                // Handling Fee
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Handling Fee", fontSize = 13.sp, color = textSecondary)
-                                    Text("₹$handlingFee", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textPrimary)
-                                }
-
-                                // Hostel Gate Premium Fee
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Hostel gate premium fee", fontSize = 13.sp, color = textSecondary)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "Hostel Gate",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF047857),
-                                            modifier = Modifier
-                                                .background(Color(0xFFD1FAE5), RoundedCornerShape(4.dp))
-                                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                                        )
-                                    }
-                                    Text("₹$hostelPremium", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textPrimary)
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Divider(modifier = Modifier.padding(vertical = 4.dp), color = Color(0xFFECE7E1))
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // Total Expected Pay
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text("Total Expected Pay:", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = textPrimary)
-                                        Text("Includes ₹$hostelPremium hostel gate delivery premium", fontSize = 9.sp, color = textSecondary)
-                                    }
-                                    val totalText = if (totalMin == totalMax) "₹$totalMin" else "₹$totalMin - ₹$totalMax"
-                                    Text(totalText, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, color = primaryColor)
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
+                            // Checkout Confirm Button
                             Button(
                                 onClick = onSubmitClick,
                                 enabled = autopayEnabled,
@@ -2035,14 +2111,14 @@ fun OrderProductScreenView(
                                     .height(52.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                             ) {
-                                Text("Place Secure Order", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Place Secure Order", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                             }
                         }
                     }
                 }
-            }
         }
     }
+}
 }
 
 @Composable
