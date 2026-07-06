@@ -2304,17 +2304,45 @@ fun ProductRowItem(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Mini Product Packet Mockup Card (Dynamic Name-based Packet illustration)
+            // Mini Product Packet Mockup Card (Dynamic Flavor and Soap Type Packet illustration)
+            val fullName = (product.productName ?: "").uppercase()
             val firstWord = (product.productName ?: "Item").split(" ").firstOrNull()?.uppercase() ?: "ITEM"
             val displayBrand = if (firstWord.length in 3..6) firstWord else getBrandAbbreviation(product).uppercase()
             
+            // Determine packet color based on flavors or soap/hygiene types
             val brandColor = when {
+                // Soaps & Brands
+                fullName.contains("DOVE") -> Color(0xFFF1F5F9) // Cream Pearl White
+                fullName.contains("DETTOL") -> Color(0xFF16A34A) // Dettol Green
+                fullName.contains("LIFEBUOY") -> Color(0xFFDC2626) // Lifebuoy Red
+                fullName.contains("SOAP") || fullName.contains("PEARS") || fullName.contains("NIVEA") || fullName.contains("SHAMPOO") || fullName.contains("FACEWASH") -> Color(0xFF0D9488) // Personal Care Teal
+                
+                // Flavors
+                fullName.contains("STRAWBERRY") || fullName.contains("ROSE") || fullName.contains("LITCHI") || fullName.contains("BERRY") || fullName.contains("PINK") -> Color(0xFFEC4899) // Pink
+                fullName.contains("CHOCO") || fullName.contains("CHOCOLATE") || fullName.contains("COCOA") || fullName.contains("COFFEE") || fullName.contains("BROWNIE") -> Color(0xFF5C381E) // Cocoa Brown
+                fullName.contains("ORANGE") || fullName.contains("MANGO") || fullName.contains("PINEAPPLE") || fullName.contains("YELLOW") || fullName.contains("LEMON") -> Color(0xFFEAB308) // Sunny Yellow/Orange
+                fullName.contains("MINT") || fullName.contains("LIME") || fullName.contains("GREEN TEA") || fullName.contains("MATCHA") || fullName.contains("ALOE") -> Color(0xFF10B981) // Mint Green
+                fullName.contains("VANILLA") || fullName.contains("MILK") || fullName.contains("COCONUT") || fullName.contains("CREAM") -> Color(0xFFFFFBEB) // Cream White
+                
+                // Defaults by brand/type
                 firstWord.contains("OREO") || firstWord.contains("BISCUIT") -> Color(0xFF0D47A1) // Oreo Royal Blue
                 firstWord.contains("COLA") || firstWord.contains("COKE") || firstWord.contains("PEPSI") || firstWord.contains("DRINK") -> Color(0xFFC8102E) // Cola Red
                 firstWord.contains("LAY") || firstWord.contains("CHIP") || firstWord.contains("KURKURE") -> Color(0xFFD4AF37) // Golden Chips Yellow
-                firstWord.contains("MED") || firstWord.contains("SOS") || firstWord.contains("TABLET") -> Color(0xFF0F766E) // Meds Teal
                 firstWord.contains("PENCIL") || firstWord.contains("BOOK") || firstWord.contains("NOTE") || firstWord.contains("PEN") -> Color(0xFF475569) // Slate grey
                 else -> primaryColor // Electric Indigo Theme color
+            }
+            
+            // Symmetrical text color based on background luminance/cleanliness
+            val packetTextColor = if (brandColor == Color(0xFFFFFBEB) || brandColor == Color(0xFFF1F5F9) || brandColor == Color(0xFFEAB308)) {
+                AppTheme.InkPrimary // Dark ink text for light backgrounds
+            } else {
+                Color.White // White text for dark backgrounds
+            }
+            
+            val crimpColor = if (brandColor == Color(0xFFFFFBEB) || brandColor == Color(0xFFF1F5F9) || brandColor == Color(0xFFEAB308)) {
+                Color.Black.copy(alpha = 0.08f) // Subtle dark crimp line for light backgrounds
+            } else {
+                Color.White.copy(alpha = 0.25f) // White crimp line for dark backgrounds
             }
 
             Card(
@@ -2335,13 +2363,13 @@ fun ProductRowItem(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(4.dp)
-                            .background(Color.White.copy(alpha = 0.25f))
+                            .background(crimpColor)
                     )
                     
                     // Brand text center stage
                     Text(
                         text = displayBrand,
-                        color = Color.White,
+                        color = packetTextColor,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 9.sp,
                         letterSpacing = 0.2.sp,
@@ -2354,7 +2382,7 @@ fun ProductRowItem(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(4.dp)
-                            .background(Color.White.copy(alpha = 0.25f))
+                            .background(crimpColor)
                     )
                 }
             }
