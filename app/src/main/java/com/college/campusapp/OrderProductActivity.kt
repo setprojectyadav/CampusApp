@@ -2100,12 +2100,14 @@ Spacer(modifier = Modifier.height(12.dp))
                             var estMinTotal = 0
                             var estMaxTotal = 0
                             var hasEstimate = false
+                            var hasUnknownPrice = false
                             
                             cart.forEach { (prod, qty) ->
                                 val config = priceConfigs[prod.code ?: ""]
                                 if (config != null) {
                                     hasEstimate = true
                                     if (config.isUnknown) {
+                                        hasUnknownPrice = true
                                         estMinTotal += config.rangeMin * qty
                                         estMaxTotal += config.rangeMax * qty
                                     } else {
@@ -2228,27 +2230,29 @@ Spacer(modifier = Modifier.height(12.dp))
                                             Text(totalText, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, color = primaryColor)
                                         }
                                         
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Divider(color = AppTheme.DividerColor)
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        
-                                        // Wallet Note in Bill details card
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(Color(0xFFECFDF5), RoundedCornerShape(8.dp))
-                                                .border(1.5.dp, Color(0xFFD1FAE5), RoundedCornerShape(8.dp))
-                                                .padding(12.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text("ℹ️", fontSize = 14.sp)
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "Since your order contains estimated prices, any leftover change will be automatically refunded back to your App Wallet.",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = Color(0xFF065F46)
-                                            )
+                                        if (hasUnknownPrice) {
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Divider(color = AppTheme.DividerColor)
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            
+                                            // Wallet Note in Bill details card
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(Color(0xFFECFDF5), RoundedCornerShape(8.dp))
+                                                    .border(1.5.dp, Color(0xFFD1FAE5), RoundedCornerShape(8.dp))
+                                                    .padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("ℹ️", fontSize = 14.sp)
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "Since your order contains estimated prices, any leftover change will be automatically refunded back to your App Wallet.",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = Color(0xFF065F46)
+                                                )
+                                            }
                                         }
                                     }
                                 }
