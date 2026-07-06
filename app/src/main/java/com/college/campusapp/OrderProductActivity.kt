@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -140,124 +142,179 @@ class OrderProductActivity : ComponentActivity() {
             val context = LocalContext.current
 
             if (showOrderSuccess && cart.isNotEmpty()) {
-                AlertDialog(
+                Dialog(
                     onDismissRequest = {
                         showOrderSuccess = false
                         cart.clear()
-                    },
-                    shape = AppTheme.CardShape,
-                    icon = {
-                        Box(
+                    }
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
                             modifier = Modifier
-                                .size(52.dp)
-                                .clip(CircleShape)
-                                .background(AppTheme.SuccessSoft),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("✅", fontSize = 24.sp)
-                        }
-                    },
-                    title = {
-                        Text(
-                            text = "Order placed!",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 19.sp,
-                            color = AppTheme.InkPrimary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    },
-                    text = {
-                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            // Pulsing / Glowing Success Ring
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(AppTheme.SuccessSoft, CircleShape)
+                                    .border(2.dp, AppTheme.Success.copy(alpha = 0.4f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("🎉", fontSize = 36.sp)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
                             Text(
-                                "SECURE ORDER CONFIRMATION",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                letterSpacing = 1.sp,
-                                color = AppTheme.InkTertiary
+                                text = "Order Placed!",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp,
+                                color = AppTheme.InkPrimary,
+                                textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            cart.forEach { (prod, qty) ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = prod.productName ?: "Product",
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 13.sp,
-                                            color = textPrimary
-                                        )
-                                        val config = priceConfigs[prod.code ?: ""]
-                                        val desc = if (config != null) {
-                                            if (config.isUnknown) {
-                                                "Range: ₹${config.rangeMin} - ₹${config.rangeMax}"
-                                            } else {
-                                                "Price: ₹${config.exactPrice}"
-                                            }
-                                        } else {
-                                            "Custom Item"
+                            
+                            Text(
+                                text = "Your request has been securely dispatched",
+                                fontSize = 12.sp,
+                                color = AppTheme.InkSecondary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
+                            )
+                            
+                            // Delivery Ticket Box
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = AppTheme.Background),
+                                border = BorderStroke(1.dp, AppTheme.DividerColor)
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("🛵", fontSize = 20.sp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = "Delivery to $dropPoint",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = AppTheme.InkPrimary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "From: $pickPoint",
+                                                fontSize = 10.sp,
+                                                color = AppTheme.InkSecondary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
                                         }
-                                        Text(
-                                            text = desc,
-                                            fontSize = 11.sp,
-                                            color = textSecondary
-                                        )
                                     }
-                                    Text(
-                                        text = "Qty: $qty",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = textPrimary,
-                                        modifier = Modifier.padding(horizontal = 8.dp)
-                                    )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Divider(color = AppTheme.DividerColor)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            InfoLine("Pickup", SecurityUtils.sanitizeInput(pickPoint))
-                            InfoLine("Delivery", SecurityUtils.sanitizeInput(dropPoint))
-                            InfoLine("Policy", if (overBudgetPolicy == "cancel") "Cancel over-budget item" else "Buy over-budget item")
-                            InfoLine("Instructions", if (instructions.isEmpty()) "None" else SecurityUtils.sanitizeInput(instructions))
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // Digital Receipt Section
+                            Text(
+                                text = "RECEIPT SUMMARY",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                letterSpacing = 1.sp,
+                                color = AppTheme.InkTertiary,
+                                modifier = Modifier.align(Alignment.Start)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                border = BorderStroke(1.dp, AppTheme.DividerColor)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp)
+                                        .maxHeight(150.dp)
+                                        .verticalScroll(rememberScrollState())
+                                ) {
+                                    cart.forEach { (prod, qty) ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = prod.productName ?: "Product",
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 12.sp,
+                                                    color = textPrimary
+                                                )
+                                                val config = priceConfigs[prod.code ?: ""]
+                                                val desc = if (config != null) {
+                                                    if (config.isUnknown) {
+                                                        "Range: ₹${config.rangeMin} - ₹${config.rangeMax}"
+                                                    } else {
+                                                        "Price: ₹${config.exactPrice}"
+                                                    }
+                                                } else {
+                                                    "Custom Item"
+                                                }
+                                                Text(
+                                                    text = desc,
+                                                    fontSize = 10.sp,
+                                                    color = textSecondary
+                                                )
+                                            }
+                                            Text(
+                                                text = "Qty: $qty",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = textPrimary,
+                                                modifier = Modifier.padding(horizontal = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            // Continue Button
+                            Button(
+                                onClick = {
+                                    showOrderSuccess = false
+                                    cart.clear()
+                                },
+                                shape = AppTheme.ButtonShape,
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(AppTheme.SuccessSoft, RoundedCornerShape(10.dp))
-                                    .padding(10.dp)
+                                    .height(48.dp)
                             ) {
-                                Text("🔒", fontSize = 13.sp)
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    "Payment processed securely via AutoPay token authorization.",
-                                    color = AppTheme.Success,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                Text("Continue Shopping", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                showOrderSuccess = false
-                                cart.clear()
-                                finish()
-                            },
-                            shape = AppTheme.ButtonShape,
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AppTheme.Primary)
-                        ) {
-                            Text("Awesome, thanks!", fontWeight = FontWeight.Bold)
-                        }
                     }
-                )
+                }
             }
 
             if (showUnknownWarning) {
