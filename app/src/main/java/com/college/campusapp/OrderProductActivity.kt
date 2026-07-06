@@ -2309,27 +2309,61 @@ fun ProductRowItem(
             val firstWord = (product.productName ?: "Item").split(" ").firstOrNull()?.uppercase() ?: "ITEM"
             val displayBrand = if (firstWord.length in 3..6) firstWord else getBrandAbbreviation(product).uppercase()
             
-            // Determine packet color based on flavors or soap/hygiene types
+            // Determine packet color based on product name and flavor/type combination
             val brandColor = when {
-                // Soaps & Brands
-                fullName.contains("DOVE") -> Color(0xFFF1F5F9) // Cream Pearl White
+                // 1. OREO Flavors
+                fullName.contains("OREO") && fullName.contains("STRAWBERRY") -> Color(0xFFEC4899) // Strawberry Oreo Pink
+                fullName.contains("OREO") && (fullName.contains("CHOCO") || fullName.contains("CHOCOLATE")) -> Color(0xFF5C381E) // Chocolate Oreo Brown
+                fullName.contains("OREO") -> Color(0xFF0D47A1) // Classic Oreo Blue
+                
+                // 2. LAYS Flavors (Indian colors match packages)
+                fullName.contains("LAYS") && (fullName.contains("SALTED") || fullName.contains("CLASSIC")) -> Color(0xFFFBC02D) // Classic Salted Yellow
+                fullName.contains("LAYS") && fullName.contains("MASALA") -> Color(0xFF0288D1) // Magic Masala Blue
+                fullName.contains("LAYS") && fullName.contains("CREAM") -> Color(0xFF2E7D32) // Cream & Onion Green
+                fullName.contains("LAYS") -> Color(0xFFFBC02D)
+                
+                // 3. KURKURE Flavors
+                fullName.contains("KURKURE") && fullName.contains("CHUTNEY") -> Color(0xFF4CAF50) // Green Chutney
+                fullName.contains("KURKURE") && fullName.contains("MASALA") -> Color(0xFFE65100) // Masala Munch Orange
+                fullName.contains("KURKURE") -> Color(0xFFE65100)
+                
+                // 4. BINGO Flavors
+                fullName.contains("BINGO") && (fullName.contains("TOMATO") || fullName.contains("YUMITOS")) -> Color(0xFFD32F2F) // Tomato Red
+                fullName.contains("BINGO") && fullName.contains("ACHAARI") -> Color(0xFFF57C00) // Achaari Masti Orange
+                fullName.contains("BINGO") -> Color(0xFFD32F2F)
+                
+                // 5. AMUL KOOL Flavors
+                fullName.contains("AMUL KOOL") && fullName.contains("KESAR") -> Color(0xFFFFB300) // Kesar Saffron Yellow
+                fullName.contains("AMUL KOOL") && fullName.contains("BADAM") -> Color(0xFFFFF9C4) // Badam Cream White
+                
+                // 6. REAL JUICE Flavors
+                fullName.contains("REAL") && fullName.contains("LITCHI") -> Color(0xFFFFF0F5) // Litchi Light Pink
+                fullName.contains("REAL") && fullName.contains("GUAVA") -> Color(0xFFE91E63) // Guava Deep Pink
+                
+                // 7. ENO Flavors
+                fullName.contains("ENO") && fullName.contains("LEMON") -> Color(0xFFFFEE58) // Lemon Eno Yellow
+                
+                // 8. BREAD Types
+                fullName.contains("BREAD") && fullName.contains("BROWN") -> Color(0xFF795548) // Brown Bread
+                fullName.contains("BREAD") && fullName.contains("WHITE") -> Color(0xFFFFFBEB) // White Bread
+                
+                // 9. Soaps & Personal Care Brands
+                fullName.contains("DOVE") -> Color(0xFFF1F5F9) // Dove White
                 fullName.contains("DETTOL") -> Color(0xFF16A34A) // Dettol Green
                 fullName.contains("LIFEBUOY") -> Color(0xFFDC2626) // Lifebuoy Red
                 fullName.contains("SOAP") || fullName.contains("PEARS") || fullName.contains("NIVEA") || fullName.contains("SHAMPOO") || fullName.contains("FACEWASH") -> Color(0xFF0D9488) // Personal Care Teal
                 
-                // Flavors
+                // 10. General Food/Drink Flavors fallback
                 fullName.contains("STRAWBERRY") || fullName.contains("ROSE") || fullName.contains("LITCHI") || fullName.contains("BERRY") || fullName.contains("PINK") -> Color(0xFFEC4899) // Pink
                 fullName.contains("CHOCO") || fullName.contains("CHOCOLATE") || fullName.contains("COCOA") || fullName.contains("COFFEE") || fullName.contains("BROWNIE") -> Color(0xFF5C381E) // Cocoa Brown
                 fullName.contains("ORANGE") || fullName.contains("MANGO") || fullName.contains("PINEAPPLE") || fullName.contains("YELLOW") || fullName.contains("LEMON") -> Color(0xFFEAB308) // Sunny Yellow/Orange
                 fullName.contains("MINT") || fullName.contains("LIME") || fullName.contains("GREEN TEA") || fullName.contains("MATCHA") || fullName.contains("ALOE") -> Color(0xFF10B981) // Mint Green
                 fullName.contains("VANILLA") || fullName.contains("MILK") || fullName.contains("COCONUT") || fullName.contains("CREAM") -> Color(0xFFFFFBEB) // Cream White
                 
-                // Defaults by brand/type
-                firstWord.contains("OREO") || firstWord.contains("BISCUIT") -> Color(0xFF0D47A1) // Oreo Royal Blue
+                // 11. General Brands
                 firstWord.contains("COLA") || firstWord.contains("COKE") || firstWord.contains("PEPSI") || firstWord.contains("DRINK") -> Color(0xFFC8102E) // Cola Red
-                firstWord.contains("LAY") || firstWord.contains("CHIP") || firstWord.contains("KURKURE") -> Color(0xFFD4AF37) // Golden Chips Yellow
                 firstWord.contains("PENCIL") || firstWord.contains("BOOK") || firstWord.contains("NOTE") || firstWord.contains("PEN") -> Color(0xFF475569) // Slate grey
-                else -> primaryColor // Electric Indigo Theme color
+                else -> primaryColor // Default Indigo
             }
             
             // Symmetrical text color based on background luminance/cleanliness
