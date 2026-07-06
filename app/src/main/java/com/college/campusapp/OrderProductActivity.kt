@@ -142,6 +142,37 @@ class OrderProductActivity : ComponentActivity() {
             val context = LocalContext.current
 
             if (showOrderSuccess && cart.isNotEmpty()) {
+                // Calculate prices for the receipt
+                var receiptFixedTotal = 0
+                var receiptEstMinTotal = 0
+                var receiptEstMaxTotal = 0
+                
+                cart.forEach { (prod, qty) ->
+                    val config = priceConfigs[prod.code ?: ""]
+                    if (config != null) {
+                        if (config.isUnknown) {
+                            receiptEstMinTotal += config.rangeMin * qty
+                            receiptEstMaxTotal += config.rangeMax * qty
+                        } else {
+                            val exact = config.exactPrice ?: 0
+                            receiptFixedTotal += exact * qty
+                        }
+                    }
+                }
+
+                val rMinSubtotal = receiptFixedTotal + receiptEstMinTotal
+                val rMaxSubtotal = receiptFixedTotal + receiptEstMaxTotal
+                val rTotalQty = cart.values.sum()
+
+                val rDelMin = (20 + (if (rMinSubtotal < 100) 5 else 0) + (if (rTotalQty > 3) (rTotalQty - 3) * 2 else 0)).coerceIn(20, 30)
+                val rDelMax = (20 + (if (rMaxSubtotal < 100) 5 else 0) + (if (rTotalQty > 3) (rTotalQty - 3) * 2 else 0)).coerceIn(20, 30)
+                
+                val rHandling = 2
+                val rPremium = 10
+
+                val rTotalMin = rMinSubtotal + rDelMin + rHandling + rPremium
+                val rTotalMax = rMaxSubtotal + rDelMax + rHandling + rPremium
+
                 Dialog(
                     onDismissRequest = {
                         showOrderSuccess = false
@@ -229,69 +260,105 @@ class OrderProductActivity : ComponentActivity() {
                             Spacer(modifier = Modifier.height(16.dp))
                             
                             // Digital Receipt Section
-                            Text(
-                                text = "RECEIPT SUMMARY",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
-                                letterSpacing = 1.sp,
-                                color = AppTheme.InkTertiary,
-                                modifier = Modifier.align(Alignment.Start)
-                            )
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
                                 border = BorderStroke(1.dp, AppTheme.DividerColor)
                             ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp)
-                                        .heightIn(max = 150.dp)
-                                        .verticalScroll(rememberScrollState())
-                                ) {
-                                    cart.forEach { (prod, qty) ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 4.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Text(
+                                        text = "Payment Receipt",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = AppTheme.InkPrimary,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    
+                                    // Scrollable Items list
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 120.dp)
+                                            .verticalScroll(rememberScrollState())
+                                    ) {
+                                        cart.forEach { (prod, qty) ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = prod.productName ?: "Product",
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontSize = 12.sp,
+                                                        color = textPrimary
+                                                    )
+                                                    Text(
+                                                        text = "Qty: $qty",
+                                                        fontSize = 10.sp,
+                                                        color = textSecondary
+                                                    )
+                                                }
+                                                // Item calculated price
+                                                val config = priceConfigs[prod.code ?: ""]
+                                                val priceText = if (config != null) {
+                                                    if (config.isUnknown) {
+                                                        "₹${config.rangeMin * qty} - ₹${config.rangeMax * qty}"
+                                                    } else {
+                                                        "₹${(config.exactPrice ?: 0) * qty}"
+                                                    }
+                                                } else {
+                                                    "₹0"
+                                                }
                                                 Text(
-                                                    text = prod.productName ?: "Product",
-                                                    fontWeight = FontWeight.SemiBold,
+                                                    text = priceText,
+                                                    fontWeight = FontWeight.Bold,
                                                     fontSize = 12.sp,
                                                     color = textPrimary
                                                 )
-                                                val config = priceConfigs[prod.code ?: ""]
-                                                val desc = if (config != null) {
-                                                    if (config.isUnknown) {
-                                                        "Range: ₹${config.rangeMin} - ₹${config.rangeMax}"
-                                                    } else {
-                                                        "Price: ₹${config.exactPrice}"
-                                                    }
-                                                } else {
-                                                    "Custom Item"
-                                                }
-                                                Text(
-                                                    text = desc,
-                                                    fontSize = 10.sp,
-                                                    color = textSecondary
-                                                )
                                             }
-                                            Text(
-                                                text = "Qty: $qty",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                                color = textPrimary,
-                                                modifier = Modifier.padding(horizontal = 4.dp)
-                                            )
                                         }
+                                    }
+                                    
+                                    Divider(modifier = Modifier.padding(vertical = 10.dp), color = AppTheme.DividerColor)
+                                    
+                                    // Subtotal Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Subtotal", fontSize = 11.sp, color = textSecondary)
+                                        val subtotalText = if (rMinSubtotal == rMaxSubtotal) "₹$rMinSubtotal" else "₹$rMinSubtotal - ₹$rMaxSubtotal"
+                                        Text(subtotalText, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = textPrimary)
+                                    }
+                                    
+                                    // Delivery & Handling Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Delivery & Fees", fontSize = 11.sp, color = textSecondary)
+                                        val feesMin = rDelMin + rHandling + rPremium
+                                        val feesMax = rDelMax + rHandling + rPremium
+                                        val feesText = if (feesMin == feesMax) "₹$feesMin" else "₹$feesMin - ₹$feesMax"
+                                        Text(feesText, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = textPrimary)
+                                    }
+                                    
+                                    Divider(modifier = Modifier.padding(vertical = 8.dp), color = AppTheme.DividerColor)
+                                    
+                                    // Total Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Total Expected Pay", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = textPrimary)
+                                        val totalText = if (rTotalMin == rTotalMax) "₹$rTotalMin" else "₹$rTotalMin - ₹$rTotalMax"
+                                        Text(totalText, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = primaryColor)
                                     }
                                 }
                             }
