@@ -193,10 +193,28 @@ class OrderProductActivity : ComponentActivity() {
                                 .padding(28.dp), // Generous spacing for a spacious feel
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            // Minimalist Tick Symbol in a Circle
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .background(Color(0xFFECFDF5), CircleShape) // Soft success green fill
+                                    .border(1.5.dp, Color(0xFF10B981), CircleShape), // Success green border
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "✓",
+                                    color = Color(0xFF10B981),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 24.sp
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+
                             Text(
-                                text = "Order Placed Successfully",
+                                text = "Your Order Successful",
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 24.sp, // Larger prominent size
+                                fontSize = 24.sp,
                                 letterSpacing = (-0.5).sp,
                                 color = AppTheme.InkPrimary,
                                 textAlign = TextAlign.Center
