@@ -182,26 +182,27 @@ class OrderProductActivity : ComponentActivity() {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        shape = RoundedCornerShape(20.dp),
+                            .padding(8.dp), // Expand card wider on screen
+                        shape = RoundedCornerShape(28.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(20.dp),
+                                .padding(28.dp), // Generous spacing for a spacious feel
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 text = "Order Placed Successfully",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 24.sp, // Larger prominent size
+                                letterSpacing = (-0.5).sp,
                                 color = AppTheme.InkPrimary,
                                 textAlign = TextAlign.Center
                             )
                             
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(24.dp))
                             
                             // The Minimalist Invoice Card (combines Address & Payments)
                             Card(
