@@ -902,6 +902,125 @@ fun getBrandAbbreviation(product: Product): String {
     }
 }
 
+fun getProductPacketColor(code: String?, primaryColor: Color): Color {
+    val c = code?.lowercase() ?: ""
+    return when {
+        // Biscuits
+        c == "biscuit_oreo_original" -> Color(0xFF0D47A1) // Original Oreo Blue
+        c == "biscuit_oreo_strawberry" -> Color(0xFFEC4899) // Strawberry Oreo Pink
+        c == "biscuit_bourbon" -> Color(0xFF4A148C) // Bourbon Dark Purple/Chocolate
+        c == "biscuit_goodday_butter" -> Color(0xFFFBC02D) // Good Day Butter Gold Yellow
+        c == "biscuit_goodday_cashew" -> Color(0xFF388E3C) // Good Day Cashew Green
+        c.startsWith("biscuit_parleg") -> Color(0xFFFFD54F) // Parle-G Yellowish Gold
+        c == "biscuit_hideandseek" -> Color(0xFF1A237E) // Hide & Seek Deep Indigo
+        c == "biscuit_marie" -> Color(0xFFFF9800) // Marie Gold Orange
+        c == "biscuit_darkfantasy" -> Color(0xFF212121) // Dark Fantasy Jet Black
+        c == "biscuit_mcvities" -> Color(0xFF8D6E63) // McVities Digestive Brown
+        c == "biscuit_nutrichoice" -> Color(0xFF2E7D32) // Nutrichoice Green
+        c == "biscuit_littlehearts" -> Color(0xFFE91E63) // Little Hearts Crimson Pink/Red
+        c == "biscuit_jimjam" -> Color(0xFFD81B60) // Jim Jam Jam Red
+        c == "biscuit_monaco" -> Color(0xFFFFEB3B) // Monaco Yellow
+        c == "biscuit_krackjack" -> Color(0xFF1B5E20) // KrackJack Forest Green
+
+        // Chips & Snacks
+        c == "chips_lays_salted" -> Color(0xFFFFEB3B) // Lays Classic Salted Yellow
+        c == "chips_lays_masala" -> Color(0xFF0288D1) // Lays Magic Masala Blue
+        c == "chips_lays_onion" -> Color(0xFF81C784) // Lays Cream & Onion Light Green
+        c == "chips_kurkure_masala" -> Color(0xFFE65100) // Kurkure Masala Orange
+        c == "chips_kurkure_chutney" -> Color(0xFF4CAF50) // Kurkure Green Chutney
+        c == "chips_bingo_madangles" -> Color(0xFFFF9800) // Bingo Mad Angles Orange
+        c == "chips_bingo_yumitos" -> Color(0xFFD32F2F) // Bingo Yumitos Red
+        c == "chips_pringles_salted" -> Color(0xFFC62828) // Pringles Salted Red
+        c == "chips_pringles_sourcream" -> Color(0xFF2E7D32) // Pringles Sour Cream Green
+        c == "chips_balaji_salted" -> Color(0xFFFFEB3B) // Balaji Salted Yellow
+        c == "chips_balaji_masala" -> Color(0xFFE65100) // Balaji Masala Orange
+        c == "chips_tooyumm_karare" -> Color(0xFF673AB7) // Too Yumm Purple
+        
+        // Namkeen & Popcorn
+        c == "namkeen_haldiram_aloo" -> Color(0xFFFFEE58) // Aloo Bhujia Yellow
+        c == "namkeen_haldiram_bhujia" -> Color(0xFFF57C00) // Bhujia Sev Orange
+        c == "namkeen_haldiram_moong" -> Color(0xFF4CAF50) // Moong Dal Green
+        c == "namkeen_bikaji_bhujia" -> Color(0xFFF57C00) // Bikaji Bhujia Orange
+        c == "popcorn_act2_salted" -> Color(0xFFFFEB3B) // Act II Butter Yellow
+        c == "popcorn_act2_golden" -> Color(0xFFD32F2F) // Act II Golden Red
+
+        // Noodles & Soups
+        c.startsWith("noodles_maggi") -> Color(0xFFFFEB3B) // Maggi Yellow
+        c.startsWith("noodles_yippee") -> Color(0xFFFF5722) // Yippee Orange
+        c == "noodles_chings" -> Color(0xFFB71C1C) // Chings Schezwan Red
+        c == "noodles_nissin_cup" -> Color(0xFFE0F2F1) // Cup Noodles Light Mint
+        c == "soup_knorr_tomato" -> Color(0xFFC62828) // Knorr Tomato Red
+
+        // Chocolates
+        c == "choc_dairymilk_regular" -> Color(0xFF4A148C) // Dairy Milk Purple
+        c == "choc_dairymilk_silk" -> Color(0xFF3F1D5A) // Dairy Milk Silk Rich Violet
+        c.startsWith("choc_kitkat") -> Color(0xFFD32F2F) // KitKat Red
+        c == "choc_snickers" -> Color(0xFF4E342E) // Snickers Brown
+        c == "choc_5star" -> Color(0xFFFFD54F) // 5 Star Gold Yellow
+        c == "choc_munch" -> Color(0xFF2E7D32) // Munch Green
+        c == "choc_amul_dark" -> Color(0xFF212121) // Amul Dark Black
+        c == "choc_perk" -> Color(0xFF1E88E5) // Perk Blue
+        c == "choc_fuse" -> Color(0xFF7B1FA2) // Fuse Purple
+        c == "choc_gems" -> Color(0xFFE040FB) // Gems Violet/Magenta
+
+        // Drinks
+        c.startsWith("drink_coke") -> Color(0xFFE53935) // Coke Red
+        c.startsWith("drink_thumsup") -> Color(0xFF0D47A1) // Thums Up Blue
+        c.startsWith("drink_sprite") -> Color(0xFF388E3C) // Sprite Green
+        c == "drink_fanta" -> Color(0xFFFF9800) // Fanta Orange
+        c == "drink_redbull" -> Color(0xFF78909C) // Red Bull Blue-Grey
+        c == "drink_sting" -> Color(0xFFFF1744) // Sting Red
+        c == "drink_appyfizz" -> Color(0xFF212121) // Appy Fizz Black
+        c == "drink_monster" -> Color(0xFF212121) // Monster Black
+        c == "drink_amulkool_kesar" -> Color(0xFFFFB300) // Amul Kool Kesar Saffron Yellow
+        c == "drink_amulkool_badam" -> Color(0xFFFFF9C4) // Amul Kool Badam Cream
+        c == "juice_real_litchi" -> Color(0xFFFFF0F5) // Real Litchi Light Pink
+        c == "juice_real_guava" -> Color(0xFFE91E63) // Real Guava Pink
+        c == "juice_paperboat_aam" -> Color(0xFF81C784) // Paperboat Aam Green
+        c == "coffee_nescafe_can" -> Color(0xFF5D4037) // Nescafe Coffee Brown
+
+        // Fresh Food
+        c == "fresh_samosa" -> Color(0xFFCD7F32) // Samosa Golden Brown
+        c == "fresh_chai" -> Color(0xFFD2B48C) // Chai Light Brown
+
+        // Stationery & Utilities
+        c.startsWith("stat_") -> Color(0xFF0288D1) // Classmate Blue
+        c.startsWith("util_") -> Color(0xFF78909C) // Syska Grey
+
+        // Hygiene & Care
+        c == "hygiene_soap_dettol" -> Color(0xFF2E7D32) // Dettol Green
+        c == "hygiene_soap_dove" -> Color(0xFFECEFF1) // Dove Clean White
+        c == "hygiene_facewash_himalaya" -> Color(0xFF4CAF50) // Himalaya Face Wash Green
+        c == "hygiene_toothpaste_colgate" -> Color(0xFFD32F2F) // Colgate Red
+        c == "hygiene_shampoo_clinic" -> Color(0xFF1976D2) // Clinic Plus Blue
+        c == "hygiene_deo_nivea" -> Color(0xFF1565C0) // Nivea Blue
+        c == "hygiene_deo_axe" -> Color(0xFF212121) // Axe Black
+        c == "hygiene_lotion_vaseline" -> Color(0xFF8D6E63) // Vaseline Cocoa Brown
+        c == "cleaner_vim_bar" -> Color(0xFF4CAF50) // Vim Green
+        c == "cleaner_lizol" -> Color(0xFFFFEE58) // Lizol Yellow
+
+        // Medicine & Health
+        c == "med_dolo" -> Color(0xFFE0F7FA) // Dolo Blue-White
+        c == "med_eno" -> Color(0xFFFFEB3B) // Eno Yellow
+        c == "med_bandaid" -> Color(0xFFD7CCC8) // Band-Aid Skin Beige
+        c == "med_volini" -> Color(0xFF0288D1) // Volini Blue
+        c == "med_vicks_vaporub" -> Color(0xFF006064) // Vicks Blue-Green
+        c == "supplement_bournvita" -> Color(0xFFE65100) // Bournvita Orange
+
+        // Staples & Spreads
+        c == "spread_nutella" -> Color(0xFFFFFFFF) // Nutella White
+        c == "spread_peanut_butter" -> Color(0xFFFFA000) // Peanut Butter Golden
+        c == "staple_bread_white" -> Color(0xFFFAFAFA) // White Bread White
+        c == "staple_bread_brown" -> Color(0xFF8D6E63) // Brown Bread Brown
+        c == "staple_cheese_slices" -> Color(0xFFFFD54F) // Cheese Yellow
+        c == "sauce_ketchup" -> Color(0xFFD32F2F) // Ketchup Red
+        c == "sauce_schezwan" -> Color(0xFFB71C1C) // Schezwan Red
+        c == "staple_oats" -> Color(0xFF1565C0) // Oats Blue
+
+        else -> primaryColor // Default Indigo Theme
+    }
+}
+
 fun getProductPrice(product: Product): Int {
     val code = product.code?.lowercase() ?: ""
     return when {
