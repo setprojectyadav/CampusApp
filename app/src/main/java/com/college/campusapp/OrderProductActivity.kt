@@ -1785,7 +1785,8 @@ fun OrderProductScreenView(
                                     OutlinedTextField(
                                         value = pickPoint,
                                         onValueChange = onPickChange,
-                                        label = { Text("Pick Up Location (e.g. Campus Store)") },
+                                        label = { Text("Pick Up Location") },
+                                        placeholder = { Text("e.g. Campus Store", color = AppTheme.InkTertiary) },
                                         isError = pickError.isNotEmpty(),
                                         singleLine = true,
                                         shape = AppTheme.FieldShape,
@@ -1812,7 +1813,8 @@ fun OrderProductScreenView(
                                     OutlinedTextField(
                                         value = dropPoint,
                                         onValueChange = onDropChange,
-                                        label = { Text("Drop Off Spot (e.g. Block C Room 204)") },
+                                        label = { Text("Drop Off Spot") },
+                                        placeholder = { Text("e.g. Block C Room 204", color = AppTheme.InkTertiary) },
                                         isError = dropError.isNotEmpty(),
                                         singleLine = true,
                                         shape = AppTheme.FieldShape,
@@ -1839,7 +1841,8 @@ fun OrderProductScreenView(
                                     OutlinedTextField(
                                         value = instructions,
                                         onValueChange = onInstructionsChange,
-                                        label = { Text("Delivery Instructions (Optional)") },
+                                        label = { Text("Delivery Instructions") },
+                                        placeholder = { Text("e.g. Call before arrival, leave at door (optional)", color = AppTheme.InkTertiary) },
                                         singleLine = true,
                                         shape = AppTheme.FieldShape,
                                         colors = OutlinedTextFieldDefaults.colors(
