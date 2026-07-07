@@ -1147,6 +1147,7 @@ fun OrderProductScreenView(
     var priceConfigExact by remember { mutableStateOf("") }
     var priceConfigRange by remember { mutableStateOf(0f..300f) }
 
+    val context = LocalContext.current
     val primaryColor = AppTheme.Primary
     val textPrimary = AppTheme.InkPrimary
     val textSecondary = AppTheme.InkSecondary
