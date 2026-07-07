@@ -172,11 +172,13 @@ class OrderProductActivity : ComponentActivity() {
                 var receiptFixedTotal = 0
                 var receiptEstMinTotal = 0
                 var receiptEstMaxTotal = 0
+                var hasUnknownPrice = false
                 
                 cart.forEach { (prod, qty) ->
                     val config = priceConfigs[prod.code ?: ""]
                     if (config != null) {
                         if (config.isUnknown) {
+                            hasUnknownPrice = true
                             receiptEstMinTotal += config.rangeMin * qty
                             receiptEstMaxTotal += config.rangeMax * qty
                         } else {
