@@ -134,3 +134,11 @@ object WalletManager {
         EncryptionManager.saveString(context, "wallet_transactions", json)
     }
 }
+
+data class ActiveOrder(
+    val id: String,
+    val refundAmount: Int,
+    val hasEstimate: Boolean,
+    val totalMin: Int,
+    val totalMax: Int
+)

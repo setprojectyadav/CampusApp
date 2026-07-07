@@ -142,6 +142,19 @@ class OrderProductActivity : ComponentActivity() {
             var useWalletBalance by remember { mutableStateOf(false) }
             var orderUsedWalletAmount by remember { mutableStateOf(0) }
             
+            var activeOrder by remember { mutableStateOf<ActiveOrder?>(null) }
+            var deliveryStatus by remember { mutableStateOf("purchasing") }
+            
+            LaunchedEffect(activeOrder) {
+                if (activeOrder != null) {
+                    deliveryStatus = "purchasing"
+                    kotlinx.coroutines.delay(6000L)
+                    deliveryStatus = "on_the_way"
+                    kotlinx.coroutines.delay(6000L)
+                    deliveryStatus = "arrived"
+                }
+            }
+            
             val lifecycleOwner = LocalLifecycleOwner.current
             DisposableEffect(lifecycleOwner) {
                 val observer = LifecycleEventObserver { _, event ->
@@ -395,17 +408,17 @@ class OrderProductActivity : ComponentActivity() {
                             Button(
                                 onClick = {
                                     showOrderSuccess = false
-                                    // Simulation of price refund for range-priced items
-                                    if (hasUnknownPrice) {
-                                        val maxDifference = rTotalMax - rTotalMin
-                                        if (maxDifference > 0) {
-                                            val refund = (2..maxDifference.coerceAtLeast(3)).random()
-                                            WalletManager.credit(context, refund, "Refund for estimated price change")
-                                            Toast.makeText(context, "🎉 ₹$refund refunded to your App Wallet from price estimate difference!", Toast.LENGTH_LONG).show()
-                                        }
-                                    }
+                                    // Construct the simulated ActiveOrder with refund amount from estimate
+                                    val maxDifference = rTotalMax - rTotalMin
+                                    val refund = if (hasUnknownPrice && maxDifference > 0) (2..maxDifference.coerceAtLeast(3)).random() else 0
+                                    activeOrder = ActiveOrder(
+                                        id = "CSV-" + (1000..9999).random(),
+                                        refundAmount = refund,
+                                        hasEstimate = hasUnknownPrice,
+                                        totalMin = rTotalMin,
+                                        totalMax = rTotalMax
+                                    )
                                     cart.clear()
-                                    walletBalance = WalletManager.getBalance(context)
                                 },
                                 shape = AppTheme.ButtonShape,
                                 colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
@@ -493,6 +506,21 @@ class OrderProductActivity : ComponentActivity() {
                 onUseWalletBalanceChange = { useWalletBalance = it },
                 orderUsedWalletAmount = orderUsedWalletAmount,
                 onOrderUsedWalletAmountChange = { orderUsedWalletAmount = it },
+                activeOrder = activeOrder,
+                deliveryStatus = deliveryStatus,
+                onVerifyDelivery = {
+                    val order = activeOrder
+                    if (order != null) {
+                        if (order.refundAmount > 0) {
+                            WalletManager.credit(context, order.refundAmount, "Leftover change from Order ${order.id}")
+                            walletBalance = WalletManager.getBalance(context)
+                            Toast.makeText(context, "🎉 Delivery Verified! ₹${order.refundAmount} refunded back to your App Wallet from estimate difference.", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "🎉 Delivery Verified successfully!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    activeOrder = null
+                },
                 onSearchClick = {
                     val preprocessed = searchQuery.trim().replace(Regex("\\s+"), " ")
                     if (preprocessed.isEmpty()) {
@@ -1140,7 +1168,10 @@ fun OrderProductScreenView(
     useWalletBalance: Boolean,
     onUseWalletBalanceChange: (Boolean) -> Unit,
     orderUsedWalletAmount: Int,
-    onOrderUsedWalletAmountChange: (Int) -> Unit
+    onOrderUsedWalletAmountChange: (Int) -> Unit,
+    activeOrder: ActiveOrder?,
+    deliveryStatus: String,
+    onVerifyDelivery: () -> Unit
 ) {
     var showCheckout by remember { mutableStateOf(false) }
 
@@ -1714,6 +1745,87 @@ Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Simulated Active Order Tracking Banner
+                if (activeOrder != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        shape = AppTheme.CardShape,
+                        border = BorderStroke(1.5.dp, Color(0xFFF59E0B)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("🚴", fontSize = 20.sp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Active Delivery Status",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF78350F)
+                                    )
+                                }
+                                Text(
+                                    text = activeOrder.id,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFB45309)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            val statusText = when (deliveryStatus) {
+                                "purchasing" -> "Rider is purchasing items at the counter..."
+                                "on_the_way" -> "Rider is on the way to your hostel gate..."
+                                else -> "Rider arrived at the hostel! Please check and verify your order."
+                            }
+                            
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (deliveryStatus != "arrived") {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color(0xFFF59E0B)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                } else {
+                                    Text("🚪", fontSize = 14.sp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = statusText,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF92400E),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            
+                            if (deliveryStatus == "arrived") {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = onVerifyDelivery,
+                                    shape = AppTheme.ButtonShape,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                                    modifier = Modifier.fillMaxWidth().height(38.dp)
+                                ) {
+                                    Text("Verify & Confirm Delivery", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
 
                 if (isLoading) {
                     Box(
