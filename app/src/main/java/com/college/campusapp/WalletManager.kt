@@ -33,8 +33,30 @@ object WalletManager {
                 status = "COMPLETED"
             )
             saveTransactions(context, listOf(initialTx))
-            return 200
         }
+
+        // Add ₹20,000 test balance if not credited yet
+        val isTestCredited = EncryptionManager.getInt(context, "wallet_test_credited_20k", 0) == 1
+        if (!isTestCredited) {
+            EncryptionManager.saveInt(context, "wallet_test_credited_20k", 1)
+            // Directly credit balance & save transaction
+            val currentBalance = EncryptionManager.getInt(context, "wallet_balance", 0)
+            val newBalance = currentBalance + 20000
+            EncryptionManager.saveInt(context, "wallet_balance", newBalance)
+            
+            val tx = WalletTransaction(
+                id = UUID.randomUUID().toString(),
+                amount = 20000,
+                type = "REFUND",
+                timestamp = System.currentTimeMillis(),
+                description = "Testing Credit Added",
+                status = "COMPLETED"
+            )
+            val list = getTransactions(context).toMutableList()
+            list.add(0, tx)
+            saveTransactions(context, list)
+        }
+
         return EncryptionManager.getInt(context, "wallet_balance", 0)
     }
 
