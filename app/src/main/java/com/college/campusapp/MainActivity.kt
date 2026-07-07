@@ -187,7 +187,9 @@ fun MainScreenView(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            NotificationBar()
+            Spacer(modifier = Modifier.height(12.dp))
             
             Text(
                 text = "Services Grid",
