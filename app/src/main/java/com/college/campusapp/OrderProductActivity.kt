@@ -34,6 +34,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.BoxWithConstraints
+import android.content.Intent
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.Lifecycle
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -130,7 +135,23 @@ class OrderProductActivity : ComponentActivity() {
             val cart = remember { globalCart }
             val priceConfigs = remember { globalPriceConfigs }
             var overBudgetPolicy by remember { mutableStateOf("cancel") } // "cancel" or "buffer"
-            var walletBalance by remember { mutableStateOf(0) }
+            
+            var walletBalance by remember { mutableStateOf(WalletManager.getBalance(context)) }
+            var useWalletBalance by remember { mutableStateOf(false) }
+            var orderUsedWalletAmount by remember { mutableStateOf(0) }
+            
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        walletBalance = WalletManager.getBalance(context)
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
             
             var pickPoint by remember { mutableStateOf("") }
             var dropPoint by remember { mutableStateOf("") }
@@ -143,7 +164,6 @@ class OrderProductActivity : ComponentActivity() {
             var pickError by remember { mutableStateOf("") }
             var dropError by remember { mutableStateOf("") }
 
-            val context = LocalContext.current
 
             if (showOrderSuccess && cart.isNotEmpty()) {
                 // Calculate prices for the receipt
@@ -176,6 +196,8 @@ class OrderProductActivity : ComponentActivity() {
 
                 val rTotalMin = rMinSubtotal + rDelMin + rHandling + rPremium
                 val rTotalMax = rMaxSubtotal + rDelMax + rHandling + rPremium
+                val rPaidTotalMin = (rTotalMin - orderUsedWalletAmount).coerceAtLeast(0)
+                val rPaidTotalMax = (rTotalMax - orderUsedWalletAmount).coerceAtLeast(0)
 
                 Dialog(
                     onDismissRequest = {
@@ -340,13 +362,25 @@ class OrderProductActivity : ComponentActivity() {
                                     
                                     Divider(modifier = Modifier.padding(vertical = 8.dp), color = AppTheme.DividerColor)
                                     
+                                    if (orderUsedWalletAmount > 0) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text("Paid from Wallet", fontSize = 11.sp, color = AppTheme.Success, fontWeight = FontWeight.Bold)
+                                            Text("-₹$orderUsedWalletAmount", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AppTheme.Success)
+                                        }
+                                    }
+                                    
+                                    Divider(modifier = Modifier.padding(vertical = 8.dp), color = AppTheme.DividerColor)
+                                    
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("Total Expected Pay", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textPrimary)
-                                        val totalText = if (rTotalMin == rTotalMax) "₹$rTotalMin" else "₹$rTotalMin - ₹$rTotalMax"
+                                        Text("Net Amount Paid", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textPrimary)
+                                        val totalText = if (rPaidTotalMin == rPaidTotalMax) "₹$rPaidTotalMin" else "₹$rPaidTotalMin - ₹$rPaidTotalMax"
                                         Text(totalText, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = primaryColor)
                                     }
                                 }
@@ -357,7 +391,17 @@ class OrderProductActivity : ComponentActivity() {
                             Button(
                                 onClick = {
                                     showOrderSuccess = false
+                                    // Simulation of price refund for range-priced items
+                                    if (hasUnknownPrice) {
+                                        val maxDifference = rTotalMax - rTotalMin
+                                        if (maxDifference > 0) {
+                                            val refund = (2..maxDifference.coerceAtLeast(3)).random()
+                                            WalletManager.credit(context, refund, "Refund for estimated price change")
+                                            Toast.makeText(context, "🎉 ₹$refund refunded to your App Wallet from price estimate difference!", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
                                     cart.clear()
+                                    walletBalance = WalletManager.getBalance(context)
                                 },
                                 shape = AppTheme.ButtonShape,
                                 colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
@@ -1485,7 +1529,9 @@ Spacer(modifier = Modifier.height(12.dp))
                     }
                 },
                 actions = {
-                    WalletBadge(balance = walletBalance)
+                    WalletBadge(balance = walletBalance, onClick = {
+                        context.startActivity(Intent(context, WalletActivity::class.java))
+                    })
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AppTheme.Background,
@@ -2213,6 +2259,37 @@ Spacer(modifier = Modifier.height(12.dp))
                                     }
                                 }
                             }
+                            
+                            // CARD 3.5: App Wallet Payment Card
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                                shape = AppTheme.CardShape,
+                                border = BorderStroke(1.dp, AppTheme.DividerColor),
+                                colors = CardDefaults.cardColors(containerColor = Color.White)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("💵", fontSize = 20.sp)
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("Use Wallet Balance", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = textPrimary)
+                                            Text("Available: ₹$walletBalance", fontSize = 11.sp, color = AppTheme.Success, fontWeight = FontWeight.Bold)
+                                        }
+                                        Switch(
+                                            checked = useWalletBalance,
+                                            onCheckedChange = { useWalletBalance = it },
+                                            enabled = walletBalance > 0,
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = Color.White,
+                                                checkedTrackColor = AppTheme.Success
+                                            )
+                                        )
+                                    }
+                                }
+                            }
 
                             // CARD 4: Bill Summary Breakdown
                             var fixedTotal = 0
@@ -2382,7 +2459,17 @@ Spacer(modifier = Modifier.height(12.dp))
                             // Checkout Confirm Swipe Button
                             SwipeToPlaceOrderButton(
                                 enabled = autopayEnabled,
-                                onSubmit = onSubmitClick,
+                                onSubmit = {
+                                    val walletDeduction = if (useWalletBalance) minOf(walletBalance, totalMax) else 0
+                                    if (walletDeduction > 0) {
+                                        WalletManager.debit(context, walletDeduction, "Payment for Order")
+                                        orderUsedWalletAmount = walletDeduction
+                                        walletBalance = WalletManager.getBalance(context)
+                                    } else {
+                                        orderUsedWalletAmount = 0
+                                    }
+                                    onSubmitClick()
+                                },
                                 primaryColor = primaryColor,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -2627,12 +2714,12 @@ data class PriceConfig(
 )
 
 @Composable
-fun WalletBadge(balance: Int) {
+fun WalletBadge(balance: Int, onClick: () -> Unit) {
     Card(
         shape = AppTheme.ChipShape,
         colors = CardDefaults.cardColors(containerColor = AppTheme.SuccessSoft),
         border = BorderStroke(1.dp, AppTheme.Success.copy(alpha = 0.4f)),
-        modifier = Modifier.padding(horizontal = 8.dp)
+        modifier = Modifier.padding(horizontal = 8.dp).clickable(onClick = onClick)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

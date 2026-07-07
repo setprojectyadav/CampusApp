@@ -51,6 +51,14 @@ object EncryptionManager {
         return getEncryptedPrefs(context).getBoolean(key, defaultValue)
     }
 
+    fun saveInt(context: Context, key: String, value: Int) {
+        getEncryptedPrefs(context).edit().putInt(key, value).apply()
+    }
+
+    fun getInt(context: Context, key: String, defaultValue: Int = 0): Int {
+        return getEncryptedPrefs(context).getInt(key, defaultValue)
+    }
+
     fun clear(context: Context) {
         getEncryptedPrefs(context).edit().clear().apply()
     }

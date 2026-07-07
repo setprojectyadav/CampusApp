@@ -63,6 +63,11 @@
             android:exported="false"
             android:theme="@style/Theme.CampusApp.NoActionBar" />
 
+        <activity
+            android:name=".WalletActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CampusApp.NoActionBar" />
+
     </application>
 
 </manifest>
