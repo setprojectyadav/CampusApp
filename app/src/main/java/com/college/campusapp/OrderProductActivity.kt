@@ -2328,19 +2328,20 @@ Spacer(modifier = Modifier.height(12.dp))
                                 }
                             }
 
+                            val itemsMinSubtotal = fixedTotal + estMinTotal
+                            val itemsMaxSubtotal = fixedTotal + estMaxTotal
+                            val totalQuantity = cart.values.sum()
+
+                            val deliveryMin = (20 + (if (itemsMinSubtotal < 100) 5 else 0) + (if (totalQuantity > 3) (totalQuantity - 3) * 2 else 0)).coerceIn(20, 30)
+                            val deliveryMax = (20 + (if (itemsMaxSubtotal < 100) 5 else 0) + (if (totalQuantity > 3) (totalQuantity - 3) * 2 else 0)).coerceIn(20, 30)
+                            
+                            val handlingFee = 2
+                            val hostelPremium = 10
+
+                            val totalMin = itemsMinSubtotal + deliveryMin + handlingFee + hostelPremium
+                            val totalMax = itemsMaxSubtotal + deliveryMax + handlingFee + hostelPremium
+
                             if (hasEstimate) {
-                                val itemsMinSubtotal = fixedTotal + estMinTotal
-                                val itemsMaxSubtotal = fixedTotal + estMaxTotal
-                                val totalQuantity = cart.values.sum()
-
-                                val deliveryMin = (20 + (if (itemsMinSubtotal < 100) 5 else 0) + (if (totalQuantity > 3) (totalQuantity - 3) * 2 else 0)).coerceIn(20, 30)
-                                val deliveryMax = (20 + (if (itemsMaxSubtotal < 100) 5 else 0) + (if (totalQuantity > 3) (totalQuantity - 3) * 2 else 0)).coerceIn(20, 30)
-                                
-                                val handlingFee = 2
-                                val hostelPremium = 10
-
-                                val totalMin = itemsMinSubtotal + deliveryMin + handlingFee + hostelPremium
-                                val totalMax = itemsMaxSubtotal + deliveryMax + handlingFee + hostelPremium
 
                                 Card(
                                     modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
