@@ -127,6 +127,8 @@ class OrderProductActivity : ComponentActivity() {
             val textPrimary = AppTheme.InkPrimary
             val textSecondary = AppTheme.InkSecondary
             
+            val context = LocalContext.current
+            
             var searchQuery by remember { mutableStateOf("") }
             var isLoading by remember { mutableStateOf(false) }
             var searchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
