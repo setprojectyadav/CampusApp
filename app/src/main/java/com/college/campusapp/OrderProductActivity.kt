@@ -477,6 +477,7 @@ class OrderProductActivity : ComponentActivity() {
                 overBudgetPolicy = overBudgetPolicy,
                 onPolicyChange = { overBudgetPolicy = it },
                 walletBalance = walletBalance,
+                onWalletBalanceChange = { walletBalance = it },
                 pickPoint = pickPoint,
                 onPickChange = { pickPoint = it },
                 dropPoint = dropPoint,
@@ -488,6 +489,10 @@ class OrderProductActivity : ComponentActivity() {
                 pickError = pickError,
                 dropError = dropError,
                 onBackClick = { finish() },
+                useWalletBalance = useWalletBalance,
+                onUseWalletBalanceChange = { useWalletBalance = it },
+                orderUsedWalletAmount = orderUsedWalletAmount,
+                onOrderUsedWalletAmountChange = { orderUsedWalletAmount = it },
                 onSearchClick = {
                     val preprocessed = searchQuery.trim().replace(Regex("\\s+"), " ")
                     if (preprocessed.isEmpty()) {
@@ -1118,6 +1123,7 @@ fun OrderProductScreenView(
     overBudgetPolicy: String,
     onPolicyChange: (String) -> Unit,
     walletBalance: Int,
+    onWalletBalanceChange: (Int) -> Unit,
     pickPoint: String,
     onPickChange: (String) -> Unit,
     dropPoint: String,
@@ -1130,7 +1136,11 @@ fun OrderProductScreenView(
     dropError: String,
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onSubmitClick: () -> Unit
+    onSubmitClick: () -> Unit,
+    useWalletBalance: Boolean,
+    onUseWalletBalanceChange: (Boolean) -> Unit,
+    orderUsedWalletAmount: Int,
+    onOrderUsedWalletAmountChange: (Int) -> Unit
 ) {
     var showCheckout by remember { mutableStateOf(false) }
 
@@ -2285,7 +2295,7 @@ Spacer(modifier = Modifier.height(12.dp))
                                         }
                                         Switch(
                                             checked = useWalletBalance,
-                                            onCheckedChange = { useWalletBalance = it },
+                                            onCheckedChange = onUseWalletBalanceChange,
                                             enabled = walletBalance > 0,
                                             colors = SwitchDefaults.colors(
                                                 checkedThumbColor = Color.White,
@@ -2468,10 +2478,10 @@ Spacer(modifier = Modifier.height(12.dp))
                                     val walletDeduction = if (useWalletBalance) minOf(walletBalance, totalMax) else 0
                                     if (walletDeduction > 0) {
                                         WalletManager.debit(context, walletDeduction, "Payment for Order")
-                                        orderUsedWalletAmount = walletDeduction
-                                        walletBalance = WalletManager.getBalance(context)
+                                        onOrderUsedWalletAmountChange(walletDeduction)
+                                        onWalletBalanceChange(WalletManager.getBalance(context))
                                     } else {
-                                        orderUsedWalletAmount = 0
+                                        onOrderUsedWalletAmountChange(0)
                                     }
                                     onSubmitClick()
                                 },
