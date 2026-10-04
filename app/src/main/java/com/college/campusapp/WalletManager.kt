@@ -18,52 +18,44 @@ data class WalletTransaction(
 object WalletManager {
     private val gson = Gson()
 
-    fun getBalance(context: Context): Int {
-        // Initialize balance with a welcome credit if not set yet
-        val isFirstTime = EncryptionManager.getInt(context, "wallet_initialized", 0) == 0
-        if (isFirstTime) {
-            EncryptionManager.saveInt(context, "wallet_initialized", 1)
-            EncryptionManager.saveInt(context, "wallet_balance", 200) // ₹200 welcome bonus!
-            val initialTx = WalletTransaction(
-                id = UUID.randomUUID().toString(),
-                amount = 200,
-                type = "REFUND",
-                timestamp = System.currentTimeMillis(),
-                description = "Welcome Balance Credited",
-                status = "COMPLETED"
-            )
-            saveTransactions(context, listOf(initialTx))
+    fun getBalance(context: Context, isRider: Boolean = false): Int {
+        if (isRider) {
+            val isRiderFirstTime = EncryptionManager.getInt(context, "rider_wallet_initialized", 0) == 0
+            if (isRiderFirstTime) {
+                EncryptionManager.saveInt(context, "rider_wallet_initialized", 1)
+                EncryptionManager.saveInt(context, "rider_wallet_balance", 0) // Rider starts at ₹0
+            }
+            return EncryptionManager.getInt(context, "rider_wallet_balance", 0)
+        } else {
+            // Initialize balance with a welcome credit if not set yet (v4 sets it to ₹2000)
+            val isFirstTime = EncryptionManager.getInt(context, "wallet_initialized_v4", 0) == 0
+            if (isFirstTime) {
+                EncryptionManager.saveInt(context, "wallet_initialized_v4", 1)
+                EncryptionManager.saveInt(context, "wallet_initialized_v3", 1)
+                EncryptionManager.saveInt(context, "wallet_initialized_v2", 1)
+                EncryptionManager.saveInt(context, "wallet_initialized", 1)
+                EncryptionManager.saveInt(context, "wallet_test_credited_20k", 1)
+                EncryptionManager.saveInt(context, "wallet_balance", 2000) // Set initial balance to exactly ₹2000
+                val initialTx = WalletTransaction(
+                    id = UUID.randomUUID().toString(),
+                    amount = 2000,
+                    type = "REFUND",
+                    timestamp = System.currentTimeMillis(),
+                    description = "Initial Wallet Balance",
+                    status = "COMPLETED"
+                )
+                saveTransactions(context, listOf(initialTx), isRider = false)
+                SystemNotificationHelper.showNotification(context, "💵 ₹2000 Wallet Balance Credited!", "Welcome to CampusApp! Your wallet balance has been initialized to ₹2000.")
+            }
+            return EncryptionManager.getInt(context, "wallet_balance", 0)
         }
-
-        // Add ₹20,000 test balance if not credited yet
-        val isTestCredited = EncryptionManager.getInt(context, "wallet_test_credited_20k", 0) == 1
-        if (!isTestCredited) {
-            EncryptionManager.saveInt(context, "wallet_test_credited_20k", 1)
-            // Directly credit balance & save transaction
-            val currentBalance = EncryptionManager.getInt(context, "wallet_balance", 0)
-            val newBalance = currentBalance + 20000
-            EncryptionManager.saveInt(context, "wallet_balance", newBalance)
-            
-            val tx = WalletTransaction(
-                id = UUID.randomUUID().toString(),
-                amount = 20000,
-                type = "REFUND",
-                timestamp = System.currentTimeMillis(),
-                description = "Testing Credit Added",
-                status = "COMPLETED"
-            )
-            val list = getTransactions(context).toMutableList()
-            list.add(0, tx)
-            saveTransactions(context, list)
-        }
-
-        return EncryptionManager.getInt(context, "wallet_balance", 0)
     }
 
-    fun credit(context: Context, amount: Int, description: String) {
-        val currentBalance = getBalance(context)
+    fun credit(context: Context, amount: Int, description: String, isRider: Boolean = false) {
+        val currentBalance = getBalance(context, isRider)
         val newBalance = currentBalance + amount
-        EncryptionManager.saveInt(context, "wallet_balance", newBalance)
+        val balanceKey = if (isRider) "rider_wallet_balance" else "wallet_balance"
+        EncryptionManager.saveInt(context, balanceKey, newBalance)
         
         val tx = WalletTransaction(
             id = UUID.randomUUID().toString(),
@@ -73,16 +65,29 @@ object WalletManager {
             description = description,
             status = "COMPLETED"
         )
-        val list = getTransactions(context).toMutableList()
+        val list = getTransactions(context, isRider).toMutableList()
         list.add(0, tx) // Add to top of list
-        saveTransactions(context, list)
+        saveTransactions(context, list, isRider)
+        
+        val orderId = if (description.contains("OrderNo-")) {
+            "Order No: " + description.substringAfter("OrderNo-").substringBefore(" ").trim()
+        } else if (description.contains("CSV-")) {
+            "Order No: " + description.substringAfter("CSV-").substringBefore(" ").trim()
+        } else if (description.contains("ORDER-")) {
+            "ORDER-" + description.substringAfter("ORDER-").substringBefore(" ").trim()
+        } else {
+            ""
+        }
+        val uniqueTitle = if (orderId.isNotEmpty()) "💵 Wallet Credited ($orderId)" else "💵 Wallet Balance Credited!"
+        SystemNotificationHelper.showNotification(context, uniqueTitle, "₹$amount has been credited: $description")
     }
 
-    fun debit(context: Context, amount: Int, description: String): Boolean {
-        val currentBalance = getBalance(context)
+    fun debit(context: Context, amount: Int, description: String, isRider: Boolean = false): Boolean {
+        val currentBalance = getBalance(context, isRider)
         if (currentBalance < amount) return false
         val newBalance = currentBalance - amount
-        EncryptionManager.saveInt(context, "wallet_balance", newBalance)
+        val balanceKey = if (isRider) "rider_wallet_balance" else "wallet_balance"
+        EncryptionManager.saveInt(context, balanceKey, newBalance)
         
         val tx = WalletTransaction(
             id = UUID.randomUUID().toString(),
@@ -92,34 +97,76 @@ object WalletManager {
             description = description,
             status = "COMPLETED"
         )
-        val list = getTransactions(context).toMutableList()
+        val list = getTransactions(context, isRider).toMutableList()
         list.add(0, tx)
-        saveTransactions(context, list)
+        saveTransactions(context, list, isRider)
+        
+        val orderId = if (description.contains("OrderNo-")) {
+            "Order No: " + description.substringAfter("OrderNo-").substringBefore(" ").trim()
+        } else if (description.contains("CSV-")) {
+            "Order No: " + description.substringAfter("CSV-").substringBefore(" ").trim()
+        } else if (description.contains("ORDER-")) {
+            "ORDER-" + description.substringAfter("ORDER-").substringBefore(" ").trim()
+        } else {
+            ""
+        }
+        val uniqueTitle = if (orderId.isNotEmpty()) "💳 Wallet Debited ($orderId)" else "💳 Wallet Balance Debited"
+        SystemNotificationHelper.showNotification(context, uniqueTitle, "₹$amount has been debited: $description")
         return true
     }
 
-    fun withdraw(context: Context, amount: Int, methodDetails: String): Boolean {
-        val currentBalance = getBalance(context)
+    fun withdraw(context: Context, amount: Int, methodDetails: String, isRider: Boolean = false): Boolean {
+        if (!isRider) return false // Block customer withdrawals programmatically
+        val currentBalance = getBalance(context, isRider)
         if (currentBalance < amount) return false
         val newBalance = currentBalance - amount
-        EncryptionManager.saveInt(context, "wallet_balance", newBalance)
+        val balanceKey = if (isRider) "rider_wallet_balance" else "wallet_balance"
+        EncryptionManager.saveInt(context, balanceKey, newBalance)
+        
+        val tax = (amount * 0.05).toInt()
+        val credited = amount - tax
         
         val tx = WalletTransaction(
-            id = UUID.randomUUID().toString(),
+            id = "WITHDRAW-" + (10000000..99999999).random().toString(),
             amount = -amount,
             type = "WITHDRAWAL",
             timestamp = System.currentTimeMillis(),
-            description = "Withdrawal to: $methodDetails",
-            status = "PENDING"
+            description = "Withdrawal to: $methodDetails (5% Tax: ₹$tax, Credited: ₹$credited)",
+            status = "COMPLETED"
         )
-        val list = getTransactions(context).toMutableList()
+        val list = getTransactions(context, isRider).toMutableList()
         list.add(0, tx)
-        saveTransactions(context, list)
+        saveTransactions(context, list, isRider)
         return true
     }
 
-    fun getTransactions(context: Context): List<WalletTransaction> {
-        val json = EncryptionManager.getString(context, "wallet_transactions", "")
+    fun getLockedBalance(context: Context, isRider: Boolean = false): Int {
+        val txs = getTransactions(context, isRider)
+        val cal = java.util.Calendar.getInstance()
+        val currentWeek = cal.get(java.util.Calendar.WEEK_OF_YEAR)
+        val currentYear = cal.get(java.util.Calendar.YEAR)
+
+        var locked = 0
+        for (tx in txs) {
+            if (tx.amount > 0 && tx.type == "REFUND") {
+                val desc = tx.description.lowercase()
+                if (desc.contains("payout") || desc.contains("compensation") || desc.contains("violation")) {
+                    val txCal = java.util.Calendar.getInstance()
+                    txCal.timeInMillis = tx.timestamp
+                    val txWeek = txCal.get(java.util.Calendar.WEEK_OF_YEAR)
+                    val txYear = txCal.get(java.util.Calendar.YEAR)
+                    if (currentWeek == txWeek && currentYear == txYear) {
+                        locked += tx.amount
+                    }
+                }
+            }
+        }
+        return locked
+    }
+
+    fun getTransactions(context: Context, isRider: Boolean = false): List<WalletTransaction> {
+        val key = if (isRider) "rider_wallet_transactions" else "wallet_transactions"
+        val json = EncryptionManager.getString(context, key, "")
         if (json.isNullOrEmpty()) return emptyList()
         return try {
             val type = object : TypeToken<List<WalletTransaction>>() {}.type
@@ -129,8 +176,9 @@ object WalletManager {
         }
     }
 
-    private fun saveTransactions(context: Context, list: List<WalletTransaction>) {
+    private fun saveTransactions(context: Context, list: List<WalletTransaction>, isRider: Boolean = false) {
+        val key = if (isRider) "rider_wallet_transactions" else "wallet_transactions"
         val json = gson.toJson(list)
-        EncryptionManager.saveString(context, "wallet_transactions", json)
+        EncryptionManager.saveString(context, key, json)
     }
 }

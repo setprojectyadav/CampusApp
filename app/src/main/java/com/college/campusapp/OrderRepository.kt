@@ -1,0 +1,1912 @@
+package com.college.campusapp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import android.content.Context
+
+
+
+
+
+
+
+import androidx.compose.runtime.mutableStateListOf
+
+
+
+
+
+
+
+import com.college.campusapp.security.EncryptionManager
+
+
+
+
+
+
+
+import com.google.gson.Gson
+
+
+
+
+
+
+
+import com.google.gson.reflect.TypeToken
+
+
+
+
+
+
+
+import kotlinx.coroutines.CoroutineScope
+
+
+
+
+
+
+
+import kotlinx.coroutines.Dispatchers
+
+
+
+
+
+
+
+import kotlinx.coroutines.launch
+
+
+
+
+
+
+
+import kotlinx.coroutines.delay
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+data class SimulatedOrder(
+
+
+
+
+
+
+
+    val id: String,
+
+
+
+
+
+
+
+    val customerId: String, // User email who placed the order
+
+
+
+
+
+
+
+    val deliveryOtp: String, // 6-digit code required to deliver
+
+
+
+
+
+
+
+    val items: List<Pair<String, Int>>,
+
+
+
+
+
+
+
+    val pickPoint: String,
+
+
+
+
+
+
+
+    val dropPoint: String,
+
+
+
+
+
+
+
+    val totalMin: Int,
+
+
+
+
+
+
+
+    var totalMax: Int,
+
+
+
+
+
+
+
+    val deliveryFee: Int,
+
+
+
+
+
+
+
+    val gatePremium: Int,
+
+
+
+
+
+
+
+    var status: String, // "PENDING", "ACCEPTED", "DELIVERED", "PRICE_CORRECTION_PENDING"
+
+
+
+
+
+
+
+    var actualBill: Int = 0,
+
+
+
+
+
+
+
+    var refundAmount: Int = 0,
+
+
+
+
+
+
+
+    var isEstimated: Boolean = false,
+
+
+
+
+
+
+
+    var itemsSubtotal: Int = 0,
+
+
+
+
+
+
+
+    var etaSeconds: Int = 0,
+
+
+
+
+
+
+
+    var etaTimestamp: Long = 0L,
+
+
+
+
+
+
+
+    var screenshotUri: String? = null,
+
+
+
+
+
+
+
+    var cancelledItems: List<String> = emptyList(),
+
+
+
+
+
+
+
+    var proposedItemsSubtotal: Int = 0,
+
+
+
+
+
+
+
+    var proposedTotalMax: Int = 0,
+
+
+
+
+
+
+
+    var itemPrices: Map<String, Int> = emptyMap(),
+
+
+
+
+
+
+
+    var proposedItemPrices: Map<String, Int> = emptyMap(),
+
+
+
+
+
+
+
+    var priceCorrectionExpiryTimestamp: Long = 0L,
+
+
+
+
+
+
+
+    var runnerName: String? = null,
+
+
+
+
+
+
+
+    var completionTimestamp: Long = 0L,
+
+
+
+
+
+
+
+    var pickupPhone: String? = null,
+
+
+
+
+
+
+
+    var dropPhone: String? = null,
+
+
+
+
+
+
+
+    val collegeName: String = "Googleplex Campus",
+
+    val pickupLat: Double = 0.0,
+
+    val pickupLon: Double = 0.0
+
+
+
+
+
+
+
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+object OrderRepository {
+
+
+
+
+
+
+
+    private val gson = Gson()
+
+
+
+
+
+
+
+    private var isLoaded = false
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    val pendingOrders = mutableStateListOf<SimulatedOrder>()
+
+
+
+
+
+
+
+    val completedOrders = mutableStateListOf<SimulatedOrder>()
+
+
+
+
+
+
+
+    val cancelledOrders = mutableStateListOf<SimulatedOrder>()
+
+
+
+
+
+
+
+    val searchTimerMap = mutableMapOf<String, Int>()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    init {
+
+
+
+
+
+
+
+        // Global count-up timer for all pending orders
+
+
+
+
+
+
+
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
+
+
+
+
+
+
+
+            while (true) {
+
+
+
+
+
+
+
+                kotlinx.coroutines.delay(1000L)
+
+
+
+
+
+
+
+                pendingOrders.forEach { order ->
+
+
+
+
+
+
+
+                    if (order.status == "PENDING") {
+
+
+
+
+
+
+
+                        val current = searchTimerMap[order.id] ?: 0
+
+
+
+
+
+
+
+                        searchTimerMap[order.id] = current + 1
+
+
+
+
+
+
+
+                    }
+
+
+
+
+
+
+
+                }
+
+
+
+
+
+
+
+            }
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    fun load(context: Context, force: Boolean = false) {
+
+
+
+
+
+
+
+        if (isLoaded && !force) return
+
+
+
+
+
+
+
+        isLoaded = true
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        try {
+
+
+
+
+
+
+
+            val pendingJson = EncryptionManager.getString(context, "db_pending_orders", "")
+
+
+
+
+
+
+
+            if (!pendingJson.isNullOrEmpty()) {
+
+
+
+
+
+
+
+                val type = object : TypeToken<List<SimulatedOrder>>() {}.type
+
+
+
+
+
+
+
+                val loaded: List<SimulatedOrder> = gson.fromJson(pendingJson, type)
+
+
+
+
+
+
+
+                val sanitized = loaded.filter {
+
+
+
+
+
+
+
+                    (it.id as Any?) != null && (it.customerId as Any?) != null
+
+
+
+
+
+
+
+                }.map {
+
+
+
+
+
+
+
+                    SimulatedOrder(
+
+
+
+
+
+
+
+                        id = it.id ?: "ORDER-UNKNOWN",
+
+
+
+
+
+
+
+                        customerId = it.customerId ?: "unknown@student.edu",
+
+
+
+
+
+
+
+                        deliveryOtp = it.deliveryOtp ?: "000000",
+
+
+
+
+
+
+
+                        items = it.items ?: emptyList(),
+
+
+
+
+
+
+
+                        pickPoint = it.pickPoint ?: "CAMPUS",
+
+
+
+
+
+
+
+                        dropPoint = it.dropPoint ?: "CAMPUS",
+
+
+
+
+
+
+
+                        totalMin = it.totalMin,
+
+
+
+
+
+
+
+                        totalMax = it.totalMax,
+
+
+
+
+
+
+
+                        deliveryFee = it.deliveryFee,
+
+
+
+
+
+
+
+                        gatePremium = it.gatePremium,
+
+
+
+
+
+
+
+                        status = it.status ?: "DELIVERED",
+
+
+
+
+
+
+
+                        actualBill = it.actualBill,
+
+
+
+
+
+
+
+                        refundAmount = it.refundAmount,
+
+
+
+
+
+
+
+                        isEstimated = it.isEstimated,
+
+
+
+
+
+
+
+                        itemsSubtotal = it.itemsSubtotal,
+
+
+
+
+
+
+
+                        etaSeconds = it.etaSeconds,
+
+
+
+
+
+
+
+                        etaTimestamp = it.etaTimestamp,
+
+
+
+
+
+
+
+                        screenshotUri = it.screenshotUri,
+
+
+
+
+
+
+
+                        cancelledItems = it.cancelledItems ?: emptyList(),
+
+
+
+
+
+
+
+                        proposedItemsSubtotal = it.proposedItemsSubtotal,
+
+
+
+
+
+
+
+                        proposedTotalMax = it.proposedTotalMax,
+
+
+
+
+
+
+
+                        itemPrices = it.itemPrices ?: emptyMap(),
+
+
+
+
+
+
+
+                        proposedItemPrices = it.proposedItemPrices ?: emptyMap(),
+
+
+
+
+
+
+
+                        priceCorrectionExpiryTimestamp = it.priceCorrectionExpiryTimestamp,
+
+
+
+
+
+
+
+                        runnerName = it.runnerName,
+
+
+
+
+
+
+
+                        completionTimestamp = it.completionTimestamp,
+
+
+
+
+
+
+
+                        pickupPhone = it.pickupPhone,
+
+
+
+
+
+
+
+                        dropPhone = it.dropPhone,
+
+
+
+
+
+
+
+                        collegeName = it.collegeName ?: "Googleplex Campus",
+
+                        pickupLat = it.pickupLat,
+
+                        pickupLon = it.pickupLon
+
+
+
+
+
+
+
+                    )
+
+
+
+
+
+
+
+                }
+
+
+
+
+
+
+
+                pendingOrders.clear()
+
+
+
+
+
+
+
+                pendingOrders.addAll(sanitized)
+
+
+
+
+
+
+
+            }
+
+
+
+
+
+
+
+        } catch (e: Exception) {
+
+
+
+
+
+
+
+            e.printStackTrace()
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        try {
+
+
+
+
+
+
+
+            val completedJson = EncryptionManager.getString(context, "db_completed_orders", "")
+
+
+
+
+
+
+
+            if (!completedJson.isNullOrEmpty()) {
+
+
+
+
+
+
+
+                val type = object : TypeToken<List<SimulatedOrder>>() {}.type
+
+
+
+
+
+
+
+                val loaded: List<SimulatedOrder> = gson.fromJson(completedJson, type)
+
+
+
+
+
+
+
+                val sanitized = loaded.filter {
+
+
+
+
+
+
+
+                    (it.id as Any?) != null && (it.customerId as Any?) != null
+
+
+
+
+
+
+
+                }.map {
+
+
+
+
+
+
+
+                    SimulatedOrder(
+
+
+
+
+
+
+
+                        id = it.id ?: "ORDER-UNKNOWN",
+
+
+
+
+
+
+
+                        customerId = it.customerId ?: "unknown@student.edu",
+
+
+
+
+
+
+
+                        deliveryOtp = it.deliveryOtp ?: "000000",
+
+
+
+
+
+
+
+                        items = it.items ?: emptyList(),
+
+
+
+
+
+
+
+                        pickPoint = it.pickPoint ?: "CAMPUS",
+
+
+
+
+
+
+
+                        dropPoint = it.dropPoint ?: "CAMPUS",
+
+
+
+
+
+
+
+                        totalMin = it.totalMin,
+
+
+
+
+
+
+
+                        totalMax = it.totalMax,
+
+
+
+
+
+
+
+                        deliveryFee = it.deliveryFee,
+
+
+
+
+
+
+
+                        gatePremium = it.gatePremium,
+
+
+
+
+
+
+
+                        status = it.status ?: "DELIVERED",
+
+
+
+
+
+
+
+                        actualBill = it.actualBill,
+
+
+
+
+
+
+
+                        refundAmount = it.refundAmount,
+
+
+
+
+
+
+
+                        isEstimated = it.isEstimated,
+
+
+
+
+
+
+
+                        itemsSubtotal = it.itemsSubtotal,
+
+
+
+
+
+
+
+                        etaSeconds = it.etaSeconds,
+
+
+
+
+
+
+
+                        etaTimestamp = it.etaTimestamp,
+
+
+
+
+
+
+
+                        screenshotUri = it.screenshotUri,
+
+
+
+
+
+
+
+                        cancelledItems = it.cancelledItems ?: emptyList(),
+
+
+
+
+
+
+
+                        proposedItemsSubtotal = it.proposedItemsSubtotal,
+
+
+
+
+
+
+
+                        proposedTotalMax = it.proposedTotalMax,
+
+
+
+
+
+
+
+                        itemPrices = it.itemPrices ?: emptyMap(),
+
+
+
+
+
+
+
+                        proposedItemPrices = it.proposedItemPrices ?: emptyMap(),
+
+
+
+
+
+
+
+                        priceCorrectionExpiryTimestamp = it.priceCorrectionExpiryTimestamp,
+
+
+
+
+
+
+
+                        runnerName = it.runnerName,
+
+
+
+
+
+
+
+                        completionTimestamp = it.completionTimestamp,
+
+
+
+
+
+
+
+                        pickupPhone = it.pickupPhone,
+
+
+
+
+
+
+
+                        dropPhone = it.dropPhone,
+
+
+
+
+
+
+
+                        collegeName = it.collegeName ?: "Googleplex Campus",
+
+                        pickupLat = it.pickupLat,
+
+                        pickupLon = it.pickupLon
+
+
+
+
+
+
+
+                    )
+
+
+
+
+
+
+
+                }
+
+
+
+
+
+
+
+                completedOrders.clear()
+
+
+
+
+
+
+
+                completedOrders.addAll(sanitized)
+
+
+
+
+
+
+
+            }
+
+
+
+
+
+
+
+        } catch (e: Exception) {
+
+
+
+
+
+
+
+            e.printStackTrace()
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        try {
+
+
+
+
+
+
+
+            val cancelledJson = EncryptionManager.getString(context, "db_cancelled_orders", "")
+
+
+
+
+
+
+
+            if (!cancelledJson.isNullOrEmpty()) {
+
+
+
+
+
+
+
+                val type = object : TypeToken<List<SimulatedOrder>>() {}.type
+
+
+
+
+
+
+
+                val loaded: List<SimulatedOrder> = gson.fromJson(cancelledJson, type)
+
+
+
+
+
+
+
+                val sanitized = loaded.filter {
+
+
+
+
+
+
+
+                    (it.id as Any?) != null && (it.customerId as Any?) != null
+
+
+
+
+
+
+
+                }.map {
+
+
+
+
+
+
+
+                    SimulatedOrder(
+
+
+
+
+
+
+
+                        id = it.id ?: "ORDER-UNKNOWN",
+
+
+
+
+
+
+
+                        customerId = it.customerId ?: "unknown@student.edu",
+
+
+
+
+
+
+
+                        deliveryOtp = it.deliveryOtp ?: "000000",
+
+
+
+
+
+
+
+                        items = it.items ?: emptyList(),
+
+
+
+
+
+
+
+                        pickPoint = it.pickPoint ?: "CAMPUS",
+
+
+
+
+
+
+
+                        dropPoint = it.dropPoint ?: "CAMPUS",
+
+
+
+
+
+
+
+                        totalMin = it.totalMin,
+
+
+
+
+
+
+
+                        totalMax = it.totalMax,
+
+
+
+
+
+
+
+                        deliveryFee = it.deliveryFee,
+
+
+
+
+
+
+
+                        gatePremium = it.gatePremium,
+
+
+
+
+
+
+
+                        status = it.status ?: "DELIVERED",
+
+
+
+
+
+
+
+                        actualBill = it.actualBill,
+
+
+
+
+
+
+
+                        refundAmount = it.refundAmount,
+
+
+
+
+
+
+
+                        isEstimated = it.isEstimated,
+
+
+
+
+
+
+
+                        itemsSubtotal = it.itemsSubtotal,
+
+
+
+
+
+
+
+                        etaSeconds = it.etaSeconds,
+
+
+
+
+
+
+
+                        etaTimestamp = it.etaTimestamp,
+
+
+
+
+
+
+
+                        screenshotUri = it.screenshotUri,
+
+
+
+
+
+
+
+                        cancelledItems = it.cancelledItems ?: emptyList(),
+
+
+
+
+
+
+
+                        proposedItemsSubtotal = it.proposedItemsSubtotal,
+
+
+
+
+
+
+
+                        proposedTotalMax = it.proposedTotalMax,
+
+
+
+
+
+
+
+                        itemPrices = it.itemPrices ?: emptyMap(),
+
+
+
+
+
+
+
+                        proposedItemPrices = it.proposedItemPrices ?: emptyMap(),
+
+
+
+
+
+
+
+                        priceCorrectionExpiryTimestamp = it.priceCorrectionExpiryTimestamp,
+
+
+
+
+
+
+
+                        runnerName = it.runnerName,
+
+
+
+
+
+
+
+                        completionTimestamp = it.completionTimestamp,
+
+
+
+
+
+
+
+                        pickupPhone = it.pickupPhone,
+
+
+
+
+
+
+
+                        dropPhone = it.dropPhone,
+
+
+
+
+
+
+
+                        collegeName = it.collegeName ?: "Googleplex Campus",
+
+                        pickupLat = it.pickupLat,
+
+                        pickupLon = it.pickupLon
+
+
+
+
+
+
+
+                    )
+
+
+
+
+
+
+
+                }
+
+
+
+
+
+
+
+                cancelledOrders.clear()
+
+
+
+
+
+
+
+                cancelledOrders.addAll(sanitized)
+
+
+
+
+
+
+
+            }
+
+
+
+
+
+
+
+        } catch (e: Exception) {
+
+
+
+
+
+
+
+            e.printStackTrace()
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    fun save(context: Context) {
+
+
+
+
+
+
+
+        try {
+
+
+
+
+
+
+
+            val pendingJson = gson.toJson(pendingOrders.toList())
+
+
+
+
+
+
+
+            EncryptionManager.saveString(context, "db_pending_orders", pendingJson)
+
+
+
+
+
+
+
+        } catch (e: Exception) {
+
+
+
+
+
+
+
+            e.printStackTrace()
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        try {
+
+
+
+
+
+
+
+            val completedJson = gson.toJson(completedOrders.toList())
+
+
+
+
+
+
+
+            EncryptionManager.saveString(context, "db_completed_orders", completedJson)
+
+
+
+
+
+
+
+        } catch (e: Exception) {
+
+
+
+
+
+
+
+            e.printStackTrace()
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        try {
+
+
+
+
+
+
+
+            val cancelledJson = gson.toJson(cancelledOrders.toList())
+
+
+
+
+
+
+
+            EncryptionManager.saveString(context, "db_cancelled_orders", cancelledJson)
+
+
+
+
+
+
+
+        } catch (e: Exception) {
+
+
+
+
+
+
+
+            e.printStackTrace()
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+

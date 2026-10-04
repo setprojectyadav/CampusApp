@@ -40,9 +40,10 @@ class SplashActivity : ComponentActivity() {
                 onAnimationFinished = {
                     val isSignedUp = EncryptionManager.getBoolean(this, "is_signed_up", false)
                     val rememberMe = EncryptionManager.getBoolean(this, "remember_me", false)
+                    val userEmail = EncryptionManager.getString(this, "user_email")
 
-                    // Persistent Login check
-                    val targetActivity = if (isSignedUp && rememberMe) {
+                    // Persistent Login check: stay logged in if signed up OR if active email exists
+                    val targetActivity = if ((isSignedUp && rememberMe) || (!userEmail.isNullOrEmpty() && userEmail != "student@college.edu")) {
                         MainActivity::class.java
                     } else {
                         AuthActivity::class.java

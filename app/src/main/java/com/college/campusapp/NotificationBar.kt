@@ -2,6 +2,7 @@ package com.college.campusapp
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -90,31 +91,37 @@ fun NotificationBar(modifier: Modifier = Modifier) {
         }
     }
 
-    if (!isVisible) return
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = slideInVertically { -it } + fadeIn(),
+        exit = slideOutVertically { -it } + fadeOut(),
+        modifier = modifier
+    ) {
+        val currentNotification = list[currentIndex]
 
-    val currentNotification = list[currentIndex]
+        // Style colors according to type
+        val (barBg, textCol, iconCol) = when (currentNotification.category) {
+            "ORDER" -> Triple(Color(0xFFEFF6FF), Color(0xFF1E40AF), Color(0xFF3B82F6))     // Soft blue
+            "WALLET" -> Triple(Color(0xFFECFDF5), Color(0xFF065F46), Color(0xFF10B981))    // Soft emerald
+            "SECURITY" -> Triple(Color(0xFFF8FAF9), Color(0xFF1E293B), Color(0xFF64748B))  // Soft gray/slate
+            else -> Triple(Color(0xFFFFF7ED), Color(0xFF9A3412), Color(0xFFF97316))        // Soft orange (Promo)
+        }
 
-    // Style colors according to type
-    val (barBg, textCol, iconCol) = when (currentNotification.category) {
-        "ORDER" -> Triple(Color(0xFFEFF6FF), Color(0xFF1E40AF), Color(0xFF3B82F6))     // Soft blue
-        "WALLET" -> Triple(Color(0xFFECFDF5), Color(0xFF065F46), Color(0xFF10B981))    // Soft emerald
-        "SECURITY" -> Triple(Color(0xFFF8FAF9), Color(0xFF1E293B), Color(0xFF64748B))  // Soft gray/slate
-        else -> Triple(Color(0xFFFFF7ED), Color(0xFF9A3412), Color(0xFFF97316))        // Soft orange (Promo)
-    }
-
-    Column(modifier = modifier) {
-        Box(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(barBg)
-                .clickable { showSheet = true }
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = barBg),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            border = BorderStroke(1.dp, textCol.copy(alpha = 0.12f))
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showSheet = true }
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 // Animated ticker transition
                 AnimatedContent(
@@ -129,16 +136,17 @@ fun NotificationBar(modifier: Modifier = Modifier) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = notif.icon,
-                            fontSize = 15.sp,
+                            fontSize = 16.sp,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         Column {
                             Text(
                                 text = notif.title,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 color = textCol
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = notif.message,
                                 fontSize = 11.sp,
@@ -155,7 +163,7 @@ fun NotificationBar(modifier: Modifier = Modifier) {
                 // Close Button
                 Box(
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(20.dp)
                         .clip(CircleShape)
                         .clickable { isVisible = false }
                         .background(textCol.copy(alpha = 0.08f)),
@@ -163,7 +171,7 @@ fun NotificationBar(modifier: Modifier = Modifier) {
                 ) {
                     Text(
                         text = "✕",
-                        fontSize = 9.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = textCol
                     )

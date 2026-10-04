@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,24 +30,33 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 class WalletActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val isRider = intent.getBooleanExtra("IS_RIDER", false)
         setContent {
-            WalletScreen(onBack = { finish() })
+            WalletScreen(isRider = isRider, onBack = { finish() })
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WalletScreen(onBack: () -> Unit) {
+fun WalletScreen(isRider: Boolean, onBack: () -> Unit) {
     val context = LocalContext.current
-    var balance by remember { mutableStateOf(WalletManager.getBalance(context)) }
-    var transactions by remember { mutableStateOf(WalletManager.getTransactions(context)) }
+    var balance by remember { mutableStateOf(WalletManager.getBalance(context, isRider = isRider)) }
+    val lockedBalance = remember(balance) { WalletManager.getLockedBalance(context, isRider = isRider) }
+    val unlockedBalance = remember(balance, lockedBalance) { (balance - lockedBalance).coerceAtLeast(0) }
+    var transactions by remember { mutableStateOf(WalletManager.getTransactions(context, isRider = isRider)) }
     var showWithdrawDialog by remember { mutableStateOf(false) }
+    var isProcessingWithdrawal by remember { mutableStateOf(false) }
+    var showWithdrawSuccessDialog by remember { mutableStateOf(false) }
+    var lastWithdrawnAmount by remember { mutableStateOf(0) }
+    var lastWithdrawnUpi by remember { mutableStateOf("") }
+    var lastWithdrawnId by remember { mutableStateOf("") }
 
     val primaryColor = AppTheme.Primary
     val textPrimary = AppTheme.InkPrimary
@@ -111,6 +121,38 @@ fun WalletScreen(onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    val amountVal = amountText.toIntOrNull() ?: 0
+                    if (amountVal >= 50) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        val tax = (amountVal * 0.05).toInt()
+                        val netBankCredit = amountVal - tax
+                        
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Platform Service Tax (5%):", fontSize = 11.sp, color = textSecondary)
+                                    Text("₹$tax", fontSize = 11.sp, color = textPrimary, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Net Amount to Bank:", fontSize = 11.sp, color = textSecondary)
+                                    Text("₹$netBankCredit", fontSize = 11.sp, color = AppTheme.Success, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
                     if (withdrawError.isNotEmpty()) {
                         Text(
                             text = withdrawError,
@@ -129,8 +171,12 @@ fun WalletScreen(onBack: () -> Unit) {
                             withdrawError = "Minimum withdrawal amount is ₹50"
                             return@Button
                         }
-                        if (amount > balance) {
-                            withdrawError = "Insufficient wallet balance (Available: ₹$balance)"
+                        if (amount > unlockedBalance) {
+                            withdrawError = if (amount <= balance) {
+                                "Cannot withdraw: ₹$lockedBalance earned this week is locked until the week ends."
+                            } else {
+                                "Insufficient wallet balance (Available to withdraw: ₹$unlockedBalance)"
+                            }
                             return@Button
                         }
                         if (upiIdText.trim().isEmpty() || !upiIdText.contains("@")) {
@@ -138,12 +184,19 @@ fun WalletScreen(onBack: () -> Unit) {
                             return@Button
                         }
 
-                        val success = WalletManager.withdraw(context, amount, upiIdText.trim())
+                        val targetUpi = upiIdText.trim()
+                        val success = WalletManager.withdraw(context, amount, targetUpi, isRider = isRider)
                         if (success) {
-                            balance = WalletManager.getBalance(context)
-                            transactions = WalletManager.getTransactions(context)
+                            balance = WalletManager.getBalance(context, isRider = isRider)
+                            val updatedTxs = WalletManager.getTransactions(context, isRider = isRider)
+                            transactions = updatedTxs
+                            val latestTx = updatedTxs.firstOrNull { it.type == "WITHDRAWAL" }
+                            lastWithdrawnId = latestTx?.id ?: "WITHDRAW-${(10000000..99999999).random()}"
+                            lastWithdrawnAmount = amount
+                            lastWithdrawnUpi = targetUpi
+                            
                             showWithdrawDialog = false
-                            Toast.makeText(context, "Withdrawal request of ₹$amount submitted!", Toast.LENGTH_LONG).show()
+                            isProcessingWithdrawal = true
                         } else {
                             withdrawError = "Failed to process withdrawal"
                         }
@@ -162,11 +215,170 @@ fun WalletScreen(onBack: () -> Unit) {
         )
     }
 
+    if (isProcessingWithdrawal) {
+        var statusText by remember { mutableStateOf("Initiating IMPS network handshake...") }
+        LaunchedEffect(Unit) {
+            delay(1500L)
+            statusText = "Deducting 5% platform service tax..."
+            delay(1500L)
+            val netVal = lastWithdrawnAmount - (lastWithdrawnAmount * 0.05).toInt()
+            statusText = "Routing ₹$netVal to UPI ID..."
+            delay(1500L)
+            isProcessingWithdrawal = false
+            showWithdrawSuccessDialog = true
+        }
+
+        AlertDialog(
+            onDismissRequest = {},
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White,
+            confirmButton = {},
+            title = {
+                Text(
+                    text = "Transferring to Bank",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = textPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        color = primaryColor,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(44.dp)
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = statusText,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        )
+    }
+
+    if (showWithdrawSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showWithdrawSuccessDialog = false },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White,
+            title = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(AppTheme.Success.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("✓", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = AppTheme.Success)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Transfer Successful!",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = textPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Your payout transaction has been processed successfully through UPI gateway.",
+                        fontSize = 12.sp,
+                        color = textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    )
+                    
+                    val tax = (lastWithdrawnAmount * 0.05).toInt()
+                    val netBankCredit = lastWithdrawnAmount - tax
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Transaction ID:", fontSize = 11.sp, color = textSecondary)
+                                Text(lastWithdrawnId, fontSize = 11.sp, color = textPrimary, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Destination UPI ID:", fontSize = 11.sp, color = textSecondary)
+                                Text(lastWithdrawnUpi, fontSize = 11.sp, color = textPrimary, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Requested Amount:", fontSize = 11.sp, color = textSecondary)
+                                Text("₹$lastWithdrawnAmount", fontSize = 11.sp, color = textPrimary, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Platform Tax (5% Fee):", fontSize = 11.sp, color = textSecondary)
+                                Text("- ₹$tax", fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Divider(color = Color(0xFFE2E8F0))
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Credited to Bank:", fontSize = 12.sp, color = textPrimary, fontWeight = FontWeight.Bold)
+                                Text("₹$netBankCredit", fontSize = 14.sp, color = AppTheme.Success, fontWeight = FontWeight.ExtraBold)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showWithdrawSuccessDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(46.dp)
+                ) {
+                    Text("Done", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("App Wallet", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = textPrimary)
+                    Text(if (isRider) "Runner Wallet" else "App Wallet", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = textPrimary)
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -203,21 +415,54 @@ fun WalletScreen(onBack: () -> Unit) {
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
-                            Text("Available Balance", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("₹$balance.00", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
-                        }
-                        
-                        Button(
-                            onClick = { showWithdrawDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            shape = AppTheme.ButtonShape,
-                            modifier = Modifier
-                                .align(Alignment.End)
-                                .height(38.dp)
-                        ) {
-                            Text("Withdraw to Bank", color = Color(0xFF0288D1), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        if (isRider) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("Total Balance", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("₹$balance.00", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Available to Withdraw", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("₹$unlockedBalance.00", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (lockedBalance > 0) {
+                                    Text(
+                                        text = "🔒 ₹$lockedBalance locked (Current week)",
+                                        color = Color.White.copy(alpha = 0.85f),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                                
+                                Button(
+                                    onClick = { showWithdrawDialog = true },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                    shape = AppTheme.ButtonShape,
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    Text("Withdraw", color = Color(0xFF0288D1), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+                            }
+                        } else {
+                            Column {
+                                Text("Available Balance", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("₹$balance.00", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
+                            }
                         }
                     }
                 }
@@ -329,4 +574,10 @@ fun TransactionRowItem(tx: WalletTransaction) {
             color = amountColor
         )
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun WalletScreenPreview() {
+    WalletScreen(isRider = false, onBack = {})
 }
