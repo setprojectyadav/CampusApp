@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Operations Console | CampusAdminWeb</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#FAF5FF',
+                            100: '#F3E8FF',
+                            200: '#E9D5FF',
+                            300: '#D8B4FE',
+                            400: '#C084FC',
+                            500: '#A855F7',
+                            600: '#9333EA',
+                            700: '#7E2CB8',
+                            800: '#5C1D8D',
+                            900: '#431269'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="css/custom.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col selection:bg-purple-200 selection:text-purple-900">
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 1: PIN LOCK / AUTHENTICATION                      -->
+    <!-- ======================================================== -->
+    <div id="screen-pin-lock" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950">
+        <div class="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-purple-200/20 text-center relative overflow-hidden">
+            <!-- Glow effect -->
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <!-- Shield icon -->
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-700 to-indigo-800 text-white flex items-center justify-center mx-auto shadow-lg shadow-purple-600/30 mb-5">
+                <i data-lucide="shield-check" class="w-8 h-8"></i>
+            </div>
+            
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Campus Operations Console</h1>
+            <p class="text-xs font-semibold text-purple-700 mt-1 uppercase tracking-wider">Restricted Administrative Access</p>
+            <p class="text-xs text-slate-500 mt-2">Enter your 4-digit Master Security PIN to decrypt session credentials and inspect live telemetry.</p>
+            
+            <!-- PIN Form -->
+            <div class="mt-6 space-y-4">
+                <div>
+                    <input 
+                        type="password" 
+                        id="pin-input" 
+                        maxlength="6" 
+                        placeholder="****" 
+                        class="w-full px-4 py-3 text-center text-3xl font-mono font-bold tracking-widest bg-slate-50 border-2 border-slate-200 focus:border-purple-600 focus:bg-white rounded-2xl outline-none transition-all placeholder:text-slate-300"
+                        autocomplete="off"
+                    />
+                    <p id="pin-error" class="text-rose-600 text-xs font-bold mt-2 hidden"></p>
+                </div>
+                
+                <button 
+                    id="btn-unlock" 
+                    class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-extrabold text-sm shadow-xl shadow-purple-700/25 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="lock-open" class="w-4 h-4"></i>
+                    <span>Unlock Operations Console</span>
+                </button>
+            </div>
+            
+            <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] text-slate-400 font-medium">
+                <i data-lucide="key" class="w-3.5 h-3.5 text-purple-500"></i>
+                <span>Default Master Security PIN: <strong class="text-slate-600 font-mono">4656</strong> (or <strong class="text-slate-600 font-mono">1234</strong>)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 2: MAIN DASHBOARD & TABS                          -->
+    <!-- ======================================================== -->
+    <div id="screen-dashboard" class="flex-1 flex flex-col hidden">
+        
+        <!-- Top App Bar -->
+        <header class="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white shadow-xl sticky top-0 z-40 border-b border-purple-800/40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    
+                    <!-- Left: Brand & Telemetry Status -->
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-700/80 border border-purple-400/30 flex items-center justify-center text-white shadow-md">
+                            <i data-lucide="command" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-black text-sm tracking-wide text-white">CAMPUS ADMIN</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30">v2.4.0</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 text-[11px] text-emerald-400 font-bold mt-0.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-live inline-block"></span>
+                                <span>LIVE TELEMETRY ACTIVE</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Actions & Role Switcher -->
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <!-- Role Selector -->
+                        <button 
+                            id="btn-switch-role" 
+                            class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-bold transition-all"
+                            title="Switch Administrative Role">
+                            <i data-lucide="shield" class="w-3.5 h-3.5 text-purple-300"></i>
+                            <span id="topbar-role-label">Role: Super Administrator &gt;</span>
+                        </button>
+
+                        <!-- Refresh State -->
+                        <button 
+                            id="btn-refresh-state" 
+                            class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"
+                            title="Sync Telemetry from Storage">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
+
+                        <!-- Change PIN -->
+                        <button 
+                            id="btn-change-pin" 
+                            class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"
+                            title="Change Security PIN">
+                            <i data-lucide="key" class="w-4 h-4"></i>
+                        </button>
+
+                        <!-- Reset DB -->
+                        <button 
+                            id="btn-reset-db" 
+                            class="p-2 rounded-xl bg-white/10 hover:bg-rose-500/30 text-rose-300 hover:text-white transition-all"
+                            title="Reset Database to Seed Defaults">
+                            <i data-lucide="database" class="w-4 h-4"></i>
+                        </button>
+
+                        <!-- Lock Console -->
+                        <button 
+                            id="btn-lock-console" 
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-extrabold shadow-md transition-all"
+                            title="Lock Master Console Session">
+                            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                            <span class="hidden sm:inline">Lock</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Horizontal Tabs Navigation -->
+            <div class="bg-purple-900/90 backdrop-blur border-t border-purple-800/60 overflow-x-auto scrollbar-none">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+                    <div id="nav-tabs-container" class="flex items-center gap-1.5 min-w-max">
+                        <!-- Rendered dynamically by app.js based on role permissions -->
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="tab-content-area" class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+            <!-- Rendered dynamically by app.js based on selectedTab -->
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div class="flex items-center gap-2 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Campus Operations Console &bull; 100% Kotlin 1:1 Parity Web Edition</span>
+                </div>
+                <div class="text-[11px] text-slate-400">
+                    Client Mock Storage Active &bull; Zero Build Dependency &bull; Encrypted Session
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- GENERIC MODAL BACKDROP & CONTAINER                       -->
+    <!-- ======================================================== -->
+    <div id="modal-generic" class="hidden">
+        <!-- Rendered dynamically by app.js modals -->
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TOAST NOTIFICATIONS CONTAINER                            -->
+    <!-- ======================================================== -->
+    <div id="toast-container"></div>
+
+    <!-- Core Application Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
