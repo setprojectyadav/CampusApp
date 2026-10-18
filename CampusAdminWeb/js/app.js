@@ -22,6 +22,22 @@ class CampusAdminApp {
             feedbackSubTab: 0 // 0: Suggestions, 1: Roadmap
         };
         this.severityFilter = "ALL";
+        this.auditFilters = {
+            dateFrom: "",
+            dateTo: "",
+            severity: "ALL",
+            role: "ALL"
+        };
+        this.reportsFilters = {
+            dateFrom: "",
+            dateTo: "",
+            status: "ALL"
+        };
+        this.ordersFilters = {
+            dateFrom: "",
+            dateTo: "",
+            status: "ALL"
+        };
         this.superAdminPin = localStorage.getItem("admin_security_pin") || "4656"; // Superior Admin Master PIN (4656)
         this.opsStaffPin = localStorage.getItem("admin_ops_pin") || "1234"; // Operational Team PIN (1234)
         this.financialAuditorPin = localStorage.getItem("admin_fin_pin") || "5678"; // Financial Auditor PIN (5678)
@@ -130,6 +146,297 @@ class CampusAdminApp {
         if (clientEl) clientEl.textContent = this.clientIp;
         const topEl = document.getElementById("topbar-ip-display");
         if (topEl) topEl.textContent = this.clientIp;
+    }
+
+    getTodayDateString() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    getDateStringDaysAgo(days) {
+        const d = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    getMonthStartDateString() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        return `${y}-${m}-01`;
+    }
+
+    normalizeRecordDate(record) {
+        if (!record) return null;
+        const val = record.timestamp || record.createdAt || record.time || record.date;
+        if (!val) return null;
+        if (typeof val === 'number') {
+            const d = new Date(val);
+            if (isNaN(d.getTime())) return null;
+            return d.toISOString().split('T')[0];
+        }
+        const str = val.toString().trim();
+        if (str.startsWith("Today")) {
+            return this.getTodayDateString();
+        }
+        if (str.startsWith("Yesterday")) {
+            return this.getDateStringDaysAgo(1);
+        }
+        const parsed = Date.parse(str);
+        if (!isNaN(parsed)) {
+            const d = new Date(parsed);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+        const match = str.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+        if (match) {
+            const d = new Date(`${match[2]} ${match[1]}, ${match[3]}`);
+            if (!isNaN(d.getTime())) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+        }
+        return null;
+    }
+
+    setDateFilter(section, field, value) {
+        if (section === "audit") {
+            this.auditFilters[field] = value;
+        } else if (section === "reports") {
+            this.reportsFilters[field] = value;
+        } else if (section === "orders") {
+            this.ordersFilters[field] = value;
+        }
+        this.renderCurrentTab();
+    }
+
+    applyDatePreset(section, preset) {
+        let from = "";
+        let to = "";
+        const today = this.getTodayDateString();
+
+        if (preset === "today") {
+            from = today;
+            to = today;
+        } else if (preset === "7days") {
+            from = this.getDateStringDaysAgo(7);
+            to = today;
+        } else if (preset === "this_month") {
+            from = this.getMonthStartDateString();
+            to = today;
+        }
+
+        if (section === "audit") {
+            this.auditFilters.dateFrom = from;
+            this.auditFilters.dateTo = to;
+        } else if (section === "reports") {
+            this.reportsFilters.dateFrom = from;
+            this.reportsFilters.dateTo = to;
+        } else if (section === "orders") {
+            this.ordersFilters.dateFrom = from;
+            this.ordersFilters.dateTo = to;
+        }
+        this.renderCurrentTab();
+    }
+
+    setAuditSeverity(sev) {
+        this.auditFilters.severity = sev;
+        this.severityFilter = sev;
+        this.renderCurrentTab();
+    }
+
+    setAuditRole(role) {
+        this.auditFilters.role = role;
+        this.renderCurrentTab();
+    }
+
+    setOrderStatusFilter(section, status) {
+        if (section === "reports") {
+            this.reportsFilters.status = status;
+        } else {
+            this.ordersFilters.status = status;
+        }
+        this.renderCurrentTab();
+    }
+
+    resetFilters(section) {
+        if (section === "audit") {
+            this.auditFilters = { dateFrom: "", dateTo: "", severity: "ALL", role: "ALL" };
+            this.severityFilter = "ALL";
+        } else if (section === "reports") {
+            this.reportsFilters = { dateFrom: "", dateTo: "", status: "ALL" };
+        } else if (section === "orders") {
+            this.ordersFilters = { dateFrom: "", dateTo: "", status: "ALL" };
+        }
+        this.renderCurrentTab();
+    }
+
+    renderFilterBar(section) {
+        if (section === "audit") {
+            const f = this.auditFilters;
+            const severities = ["ALL", "INFO", "WARNING", "CRITICAL"];
+            const roles = [
+                { id: "ALL", name: "All Roles" },
+                { id: "SUPER_ADMIN", name: "Super Admin" },
+                { id: "OPERATIONS_OFFICER", name: "Operations" },
+                { id: "FINANCIAL_AUDITOR", name: "Financial" },
+                { id: "SAFETY_DISPUTE_OFFICER", name: "Safety & Dispute" }
+            ];
+
+            const isToday = f.dateFrom === this.getTodayDateString() && f.dateTo === this.getTodayDateString();
+            const is7Days = f.dateFrom === this.getDateStringDaysAgo(7) && f.dateTo === this.getTodayDateString();
+            const isThisMonth = f.dateFrom === this.getMonthStartDateString() && f.dateTo === this.getTodayDateString();
+            const isAll = !f.dateFrom && !f.dateTo;
+            const filteredCount = this.getFilteredAudit().length;
+
+            return `
+                <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3.5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="p-1.5 rounded-xl bg-purple-100 text-purple-700">
+                                <i data-lucide="filter" class="w-4 h-4"></i>
+                            </span>
+                            <div>
+                                <h3 class="text-xs font-black text-slate-900 uppercase tracking-wide">Filter & Export Conditions</h3>
+                                <p class="text-[11px] text-slate-500">Filter data by condition and date for on-screen viewing and Excel/CSV download</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-purple-800 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
+                                ${filteredCount} Logs Matching Filter
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 text-xs">
+                        <div class="lg:col-span-5 flex items-center gap-2">
+                            <div class="flex-1">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">From Date</label>
+                                <input type="date" value="${f.dateFrom || ''}" onchange="app.setDateFilter('audit', 'dateFrom', this.value)" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-600 focus:outline-none bg-slate-50" />
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">To Date</label>
+                                <input type="date" value="${f.dateTo || ''}" onchange="app.setDateFilter('audit', 'dateTo', this.value)" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-600 focus:outline-none bg-slate-50" />
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-4 flex flex-col justify-end">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Quick Date Range</label>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="app.applyDatePreset('audit', 'all')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition ${isAll ? 'bg-purple-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">All</button>
+                                <button onclick="app.applyDatePreset('audit', 'today')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition ${isToday ? 'bg-purple-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">Today</button>
+                                <button onclick="app.applyDatePreset('audit', '7days')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition ${is7Days ? 'bg-purple-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">7 Days</button>
+                                <button onclick="app.applyDatePreset('audit', 'this_month')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition ${isThisMonth ? 'bg-purple-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">This Month</button>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-3 flex items-end">
+                            <button onclick="app.resetFilters('audit')" class="w-full py-1.5 px-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition flex items-center justify-center gap-1.5">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                                <span>Reset Filters</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase mr-1">Condition (Severity):</span>
+                            ${severities.map(s => `
+                                <button onclick="app.setAuditSeverity('${s}')" class="px-3 py-1 rounded-xl text-xs font-semibold transition ${f.severity === s ? 'bg-purple-700 text-white font-black shadow-md ring-2 ring-purple-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                                    ${s}
+                                </button>
+                            `).join("")}
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Actor Role:</span>
+                            <select onchange="app.setAuditRole(this.value)" class="px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-600">
+                                ${roles.map(r => `<option value="${r.id}" ${f.role === r.id ? 'selected' : ''}>${r.name}</option>`).join("")}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // For "reports" or "orders"
+        const f = section === "reports" ? this.reportsFilters : this.ordersFilters;
+        const statuses = ["ALL", "PENDING_ACCEPTANCE", "RUNNER_ASSIGNED", "BILL_UPLOADED", "DELIVERED", "CANCELLED"];
+
+        const isToday = f.dateFrom === this.getTodayDateString() && f.dateTo === this.getTodayDateString();
+        const is7Days = f.dateFrom === this.getDateStringDaysAgo(7) && f.dateTo === this.getTodayDateString();
+        const isThisMonth = f.dateFrom === this.getMonthStartDateString() && f.dateTo === this.getTodayDateString();
+        const isAll = !f.dateFrom && !f.dateTo;
+        const filteredCount = section === "reports" ? this.getFilteredReportsOrders().length : this.getFilteredOrders().length;
+
+        return `
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 rounded-xl bg-purple-100 text-purple-700">
+                            <i data-lucide="filter" class="w-4 h-4"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-xs font-black text-slate-900 uppercase tracking-wide">Filter & Export Conditions</h3>
+                            <p class="text-[11px] text-slate-500">Filter orders by date range and delivery status for viewing and Excel/CSV download</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black text-purple-800 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
+                            ${filteredCount} Orders Matching Filter
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 text-xs">
+                    <div class="lg:col-span-5 flex items-center gap-2">
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">From Date</label>
+                            <input type="date" value="${f.dateFrom || ''}" onchange="app.setDateFilter('${section}', 'dateFrom', this.value)" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-600 focus:outline-none bg-slate-50" />
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">To Date</label>
+                            <input type="date" value="${f.dateTo || ''}" onchange="app.setDateFilter('${section}', 'dateTo', this.value)" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-600 focus:outline-none bg-slate-50" />
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-4 flex flex-col justify-end">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Quick Date Range</label>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="app.applyDatePreset('${section}', 'all')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition ${isAll ? 'bg-purple-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">All</button>
+                            <button onclick="app.applyDatePreset('${section}', 'today')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition ${isToday ? 'bg-purple-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">Today</button>
+                            <button onclick="app.applyDatePreset('${section}', '7days')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition ${is7Days ? 'bg-purple-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">7 Days</button>
+                            <button onclick="app.applyDatePreset('${section}', 'this_month')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition ${isThisMonth ? 'bg-purple-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">This Month</button>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-3 flex items-end">
+                        <button onclick="app.resetFilters('${section}')" class="w-full py-1.5 px-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            <span>Reset Filters</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase mr-1">Condition (Status):</span>
+                    ${statuses.map(s => `
+                        <button onclick="app.setOrderStatusFilter('${section}', '${s}')" class="px-2.5 py-1 rounded-xl text-xs font-semibold transition ${f.status === s ? 'bg-purple-700 text-white font-black shadow-md ring-2 ring-purple-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                            ${s.replace(/_/g, ' ')}
+                        </button>
+                    `).join("")}
+                </div>
+            </div>
+        `;
     }
 
     recordAudit(actionType, targetId, details, severity = "INFO") {
@@ -566,6 +873,12 @@ class CampusAdminApp {
             topIp.textContent = this.clientIp;
         }
 
+        const curTab = TAB_DEFINITIONS.find(t => t.id === this.selectedTab) || TAB_DEFINITIONS[0];
+        const activeName = document.getElementById("active-tab-name");
+        if (activeName) {
+            activeName.textContent = curTab.label.toUpperCase();
+        }
+
         // Hide Master Administrative settings for non-Superior Admin roles
         const btnChangePin = document.getElementById("btn-change-pin");
         if (btnChangePin) {
@@ -593,13 +906,17 @@ class CampusAdminApp {
             if (!tab) return "";
             const isSelected = this.selectedTab === tabIdx;
             return `
-                <button onclick="app.setTab(${tabIdx})" class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-xs whitespace-nowrap transition-all ${
-                    isSelected 
-                        ? 'bg-white text-purple-900 shadow-md font-bold' 
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }">
-                    <i data-lucide="${tab.icon}" class="w-3.5 h-3.5"></i>
-                    <span>${tab.label}</span>
+                <button 
+                    onclick="app.setTab(${tabIdx})" 
+                    class="relative flex items-center gap-2.5 px-4 py-2 rounded-xl whitespace-nowrap transition-all duration-200 ${
+                        isSelected 
+                            ? 'active-nav-tab bg-white text-purple-950 font-black shadow-xl ring-2 ring-purple-300 ring-offset-2 ring-offset-purple-950 scale-105 border-b-4 border-purple-700' 
+                            : 'text-purple-200/80 hover:bg-white/10 hover:text-white font-semibold text-xs'
+                    }"
+                    title="Section: ${tab.label}">
+                    <i data-lucide="${tab.icon}" class="w-4 h-4 ${isSelected ? 'stroke-[2.8] text-purple-700' : 'stroke-[1.8] text-purple-300'}"></i>
+                    <span class="${isSelected ? 'font-black tracking-wide text-xs text-purple-950' : 'font-semibold text-xs'}">${tab.label}</span>
+                    ${isSelected ? '<span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse ml-0.5 shadow-sm"></span>' : ''}
                 </button>
             `;
         }).join("");
@@ -621,20 +938,42 @@ class CampusAdminApp {
         const main = document.getElementById("tab-content-area");
         if (!main) return;
 
-        switch (this.selectedTab) {
-            case 0: main.innerHTML = this.renderOverviewTab(); break;
-            case 1: main.innerHTML = this.renderOrdersTab(); break;
-            case 2: main.innerHTML = this.renderStudentsTab(); break;
-            case 3: main.innerHTML = this.renderRidersTab(); break;
-            case 4: main.innerHTML = this.renderServicesTab(); break;
-            case 5: main.innerHTML = this.renderDisputesTab(); break;
-            case 6: main.innerHTML = this.renderLostFoundTab(); break;
-            case 7: main.innerHTML = this.renderFraudScannerTab(); break;
-            case 8: main.innerHTML = this.renderAuditTrailTab(); break;
-            case 9: main.innerHTML = this.renderReportsTab(); break;
-            case 10: main.innerHTML = this.renderFeedbackTab(); break;
-            default: main.innerHTML = `<div class="p-8 text-center text-slate-500">Select a valid tab</div>`;
+        const currentTabObj = TAB_DEFINITIONS.find(t => t.id === this.selectedTab) || TAB_DEFINITIONS[0];
+
+        // Update Topbar Active Tab Badge
+        const topbarActiveName = document.getElementById("active-tab-name");
+        if (topbarActiveName) {
+            topbarActiveName.textContent = currentTabObj.label.toUpperCase();
         }
+
+        let content = "";
+        switch (this.selectedTab) {
+            case 0: content = this.renderOverviewTab(); break;
+            case 1: content = this.renderOrdersTab(); break;
+            case 2: content = this.renderStudentsTab(); break;
+            case 3: content = this.renderRidersTab(); break;
+            case 4: content = this.renderServicesTab(); break;
+            case 5: content = this.renderDisputesTab(); break;
+            case 6: content = this.renderLostFoundTab(); break;
+            case 7: content = this.renderFraudScannerTab(); break;
+            case 8: content = this.renderAuditTrailTab(); break;
+            case 9: content = this.renderReportsTab(); break;
+            case 10: content = this.renderFeedbackTab(); break;
+            default: content = `<div class="p-8 text-center text-slate-500">Select a valid tab</div>`;
+        }
+
+        main.innerHTML = `
+            <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-100 border border-purple-300 text-purple-950 shadow-sm self-start">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-700 animate-pulse"></span>
+                    <i data-lucide="${currentTabObj.icon}" class="w-4 h-4 text-purple-700 stroke-[2.8]"></i>
+                    <span class="text-xs font-black uppercase tracking-wider">ACTIVE SECTION: <strong class="underline decoration-purple-600 decoration-2">${currentTabObj.label.toUpperCase()}</strong></span>
+                </div>
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Workspace: <span class="text-purple-700 font-black">${(ADMIN_ROLES[this.activeRole] || {}).name || 'Admin'}</span></span>
+            </div>
+            ${content}
+        `;
+        if (window.lucide) lucide.createIcons();
     }
 
     // ==========================================
@@ -886,7 +1225,21 @@ class CampusAdminApp {
     // ==========================================
     getFilteredOrders() {
         const q = (this.searchQueries.orders || "").toLowerCase().trim();
+        const status = (this.ordersFilters.status || "ALL").toUpperCase();
+        const from = this.ordersFilters.dateFrom;
+        const to = this.ordersFilters.dateTo;
+
         return this.orders.filter(o => {
+            if (status !== "ALL" && (o.status || "").toUpperCase() !== status) return false;
+
+            if (from || to) {
+                const oDate = this.normalizeRecordDate(o);
+                if (oDate) {
+                    if (from && oDate < from) return false;
+                    if (to && oDate > to) return false;
+                }
+            }
+
             if (!q) return true;
             const itemsText = (o.items || []).map(it => `${it.name} ${it.qty}`).join(" ");
             const haystack = [
@@ -918,10 +1271,19 @@ class CampusAdminApp {
                         <h2 class="text-xl font-extrabold text-slate-900">Live Orders Queue</h2>
                         <p class="text-xs text-slate-500 mt-1">Live order dispatch, delivery verification, and runner assignments.</p>
                     </div>
-                    <span id="orders-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800 self-start sm:self-auto">
-                        ${filtered.length} Orders Listed
-                    </span>
+                    <div class="flex items-center gap-2 self-start sm:self-auto">
+                        <button onclick="app.downloadOrdersCsv('orders')" class="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-2 transition shadow-sm">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                            <span>Download Filtered Excel/CSV</span>
+                        </button>
+                        <span id="orders-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800">
+                            ${filtered.length} Orders Listed
+                        </span>
+                    </div>
                 </div>
+
+                <!-- Date & Condition Filter Bar -->
+                ${this.renderFilterBar("orders")}
 
                 <!-- Case-Insensitive Non-Blocking Search Box -->
                 ${this.renderSearchBox("orders", "Search by Order ID, Customer, Runner, Location, Status, Items...")}
@@ -2381,10 +2743,23 @@ class CampusAdminApp {
     // ==========================================
     getFilteredAudit() {
         const q = (this.searchQueries.audit || "").toLowerCase().trim();
-        const sev = this.severityFilter || "ALL";
+        const sev = (this.auditFilters.severity || "ALL").toUpperCase();
+        const role = (this.auditFilters.role || "ALL").toUpperCase();
+        const from = this.auditFilters.dateFrom;
+        const to = this.auditFilters.dateTo;
 
         return this.auditLogs.filter(log => {
             if (sev !== "ALL" && (log.severity || "").toUpperCase() !== sev) return false;
+            if (role !== "ALL" && (log.adminRole || "").toUpperCase() !== role) return false;
+
+            if (from || to) {
+                const logDate = this.normalizeRecordDate(log);
+                if (logDate) {
+                    if (from && logDate < from) return false;
+                    if (to && logDate > to) return false;
+                }
+            }
+
             if (!q) return true;
             const haystack = [
                 log.id,
@@ -2402,7 +2777,6 @@ class CampusAdminApp {
 
     renderAuditTrailTab() {
         const filtered = this.getFilteredAudit();
-        const sev = this.severityFilter;
 
         return `
             <div class="space-y-6">
@@ -2412,23 +2786,22 @@ class CampusAdminApp {
                         <p class="text-xs text-slate-500 mt-1">Immutable log of all administrative actions and system events.</p>
                     </div>
 
-                    <button onclick="app.downloadAuditCsv()" class="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-2 transition shadow-sm self-start sm:self-auto">
-                        <i data-lucide="cloud-download" class="w-4 h-4"></i>
-                        <span>Export CSV</span>
-                    </button>
+                    <div class="flex items-center gap-2 self-start sm:self-auto">
+                        <button onclick="app.downloadAuditCsv()" class="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-2 transition shadow-sm">
+                            <i data-lucide="cloud-download" class="w-4 h-4"></i>
+                            <span>Download Filtered Excel/CSV</span>
+                        </button>
+                        <span id="audit-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800">
+                            ${filtered.length} Logs Listed
+                        </span>
+                    </div>
                 </div>
+
+                <!-- Date & Condition Filter Bar -->
+                ${this.renderFilterBar("audit")}
 
                 <!-- Case-Insensitive Non-Blocking Search Box -->
                 ${this.renderSearchBox("audit", "Search actions, targets, admin roles, details, timestamps...")}
-
-                <!-- Severity Chips -->
-                <div class="flex items-center gap-2">
-                    ${["ALL", "INFO", "WARNING", "CRITICAL"].map(s => `
-                        <button onclick="app.setAuditSeverity('${s}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition ${sev === s ? 'bg-purple-700 text-white font-bold shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
-                            ${s}
-                        </button>
-                    `).join("")}
-                </div>
 
                 <!-- Audit Cards List with Balanced Spacing -->
                 <div id="audit-grid" class="space-y-3">
@@ -2481,17 +2854,26 @@ class CampusAdminApp {
         }).join("");
     }
 
-    setAuditSeverity(sev) {
-        this.severityFilter = sev;
-        this.updateSectionGrid("audit");
-    }
-
     // ==========================================
     // TAB 9: REPORTS
     // ==========================================
     getFilteredReportsOrders() {
         const q = (this.searchQueries.reports || "").toLowerCase().trim();
+        const status = (this.reportsFilters.status || "ALL").toUpperCase();
+        const from = this.reportsFilters.dateFrom;
+        const to = this.reportsFilters.dateTo;
+
         return this.orders.filter(o => {
+            if (status !== "ALL" && (o.status || "").toUpperCase() !== status) return false;
+
+            if (from || to) {
+                const oDate = this.normalizeRecordDate(o);
+                if (oDate) {
+                    if (from && oDate < from) return false;
+                    if (to && oDate > to) return false;
+                }
+            }
+
             if (!q) return true;
             const haystack = [
                 o.id,
@@ -2510,11 +2892,12 @@ class CampusAdminApp {
     }
 
     renderReportsTab() {
-        const totalGMV = this.orders.reduce((acc, o) => acc + (o.totalMax || 0), 0);
-        const totalPlatformFees = this.orders.reduce((acc, o) => acc + (o.deliveryFee || 0), 0);
+        const filtered = this.getFilteredReportsOrders();
+        const filteredAudit = this.getFilteredAudit();
+        const totalGMV = filtered.reduce((acc, o) => acc + (o.totalMax || 0), 0);
+        const totalPlatformFees = filtered.reduce((acc, o) => acc + (o.deliveryFee || 0), 0);
         const totalEscrow = this.disputes.reduce((acc, d) => acc + (d.escrowAmount || 0), 0);
         const totalWallets = this.students.reduce((acc, s) => acc + (s.walletBalance || 0), 0);
-        const filtered = this.getFilteredReportsOrders();
 
         return `
             <div class="space-y-6">
@@ -2523,8 +2906,16 @@ class CampusAdminApp {
                     <p class="text-xs text-slate-500 mt-1">Financial ledgers and CSV export generation.</p>
                 </div>
 
+                <!-- Date & Condition Filter Bar for Reports -->
+                ${this.renderFilterBar("reports")}
+
                 <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-                    <h3 class="text-sm font-bold text-slate-900">Platform Financial Summary</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-900">Platform Financial Summary</h3>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                            Based on ${filtered.length} Filtered Orders
+                        </span>
+                    </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                         <div class="p-4 rounded-xl bg-purple-50 border border-purple-100">
@@ -2546,14 +2937,20 @@ class CampusAdminApp {
                     </div>
 
                     <div class="pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <button onclick="app.downloadOrdersCsv()" class="p-4 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center justify-center gap-3 transition shadow-sm">
+                        <button onclick="app.downloadOrdersCsv('reports')" class="p-4 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center justify-center gap-3 transition shadow-sm">
                             <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
-                            <span>Download Orders Financial CSV (Excel / Sheets)</span>
+                            <div class="text-left">
+                                <div class="font-black text-sm">Download Orders Financial CSV</div>
+                                <div class="text-[11px] font-normal text-purple-200">Export ${filtered.length} orders matching active date & condition filter</div>
+                            </div>
                         </button>
 
                         <button onclick="app.downloadAuditCsv()" class="p-4 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-3 transition shadow-sm">
                             <i data-lucide="cloud-download" class="w-5 h-5"></i>
-                            <span>Download Full Audit Trail CSV Log</span>
+                            <div class="text-left">
+                                <div class="font-black text-sm">Download Filtered Audit Trail CSV Log</div>
+                                <div class="text-[11px] font-normal text-slate-300">Export ${filteredAudit.length} audit records matching active date & condition filter</div>
+                            </div>
                         </button>
                     </div>
                 </div>
@@ -2615,12 +3012,21 @@ class CampusAdminApp {
         `).join("");
     }
 
-    downloadOrdersCsv() {
-        const rows = [["OrderID", "CustomerEmail", "CustomerName", "Runner", "PickPoint", "DropPoint", "Status", "EstimatedBill", "ActualBill", "DeliveryFee"]];
-        this.orders.forEach(o => {
+    downloadOrdersCsv(source = "reports") {
+        const ordersList = source === "reports" ? this.getFilteredReportsOrders() : this.getFilteredOrders();
+        const filters = source === "reports" ? this.reportsFilters : this.ordersFilters;
+        
+        if (ordersList.length === 0) {
+            this.showToast("No orders match the selected condition or date filters to download.", "warning");
+            return;
+        }
+
+        const rows = [["OrderID", "Timestamp", "CustomerEmail", "CustomerName", "Runner", "PickPoint", "DropPoint", "Status", "EstimatedBill", "ActualBill", "DeliveryFee"]];
+        ordersList.forEach(o => {
             rows.push([
                 o.id,
-                o.customerId,
+                `"${o.timestamp || 'N/A'}"`,
+                `"${o.customerId}"`,
                 `"${o.customerName || 'Customer'}"`,
                 `"${o.runnerName || 'Unassigned'}"`,
                 `"${o.pickPoint}"`,
@@ -2631,12 +3037,28 @@ class CampusAdminApp {
                 o.deliveryFee
             ]);
         });
-        this.downloadCsvFile("CampusAdmin_Orders_Report.csv", rows);
+
+        let suffix = "";
+        if (filters.status && filters.status !== "ALL") suffix += `_${filters.status}`;
+        if (filters.dateFrom) suffix += `_from_${filters.dateFrom}`;
+        if (filters.dateTo) suffix += `_to_${filters.dateTo}`;
+        if (!suffix) suffix = `_${this.getTodayDateString()}`;
+
+        const filename = `CampusAdmin_Orders_Report${suffix}.csv`;
+        this.downloadCsvFile(filename, rows);
     }
 
     downloadAuditCsv() {
+        const logsList = this.getFilteredAudit();
+        const filters = this.auditFilters;
+
+        if (logsList.length === 0) {
+            this.showToast("No audit records match the selected condition or date filters to download.", "warning");
+            return;
+        }
+
         const rows = [["ID", "Timestamp", "AdminRole", "IP_Address", "ActionType", "TargetID", "Severity", "Details"]];
-        this.auditLogs.forEach(l => {
+        logsList.forEach(l => {
             const escapedDetails = (l.details || "").replace(/"/g, '""');
             rows.push([
                 l.id,
@@ -2649,7 +3071,16 @@ class CampusAdminApp {
                 `"${escapedDetails}"`
             ]);
         });
-        this.downloadCsvFile("CampusAdmin_Audit_Trail.csv", rows);
+
+        let suffix = "";
+        if (filters.severity && filters.severity !== "ALL") suffix += `_${filters.severity}`;
+        if (filters.role && filters.role !== "ALL") suffix += `_${filters.role}`;
+        if (filters.dateFrom) suffix += `_from_${filters.dateFrom}`;
+        if (filters.dateTo) suffix += `_to_${filters.dateTo}`;
+        if (!suffix) suffix = `_${this.getTodayDateString()}`;
+
+        const filename = `CampusAdmin_Audit_Trail${suffix}.csv`;
+        this.downloadCsvFile(filename, rows);
     }
 
     downloadCsvFile(filename, rows) {
