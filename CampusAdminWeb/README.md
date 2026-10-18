@@ -61,6 +61,19 @@ Because this project is built using modern standard web technologies with **zero
 
 ---
 
-## 🔑 Credentials & Access
-- Initial Master PIN: `4656` *(matching original app)*
-- You can change the Master PIN anytime directly inside the dashboard settings modal. Once changed, only your newly set PIN will be accepted.
+## 🔑 Security, Credentials & Access Architecture
+
+- **Superior Administrator Access (Full Control)**:
+  - Default Master PIN: `4656`
+  - Grants unrestricted access to all 11 modules, version policies, database resets, and Master PIN management.
+- **Operational Team Access (Restricted Ops)**:
+  - Default Staff PIN: `1234`
+  - Unlocks console directly as **Operations Officer** (orders, runners, lost & found, services).
+  - Protected against privilege escalation: switching to Superior Administrator requires Master PIN verification.
+- **System IP Tracking & Telemetry**:
+  - Automatically captures the operator's active system/public IP address at the moment any action is performed.
+  - Recorded in the immutable audit trail and exported in CSV reports.
+- **Brute-Force Lockout Protection**:
+  - Maximum of **3 failed login attempts**.
+  - Exceeding 3 attempts enforces a **strict 24-hour security lockout**.
+  - An emergency security alert with a one-click rescue authorization is dispatched to `vishalsharma782635@gmail.com`.

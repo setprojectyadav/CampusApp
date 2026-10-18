@@ -22,10 +22,17 @@ class CampusAdminApp {
             feedbackSubTab: 0 // 0: Suggestions, 1: Roadmap
         };
         this.severityFilter = "ALL";
-        this.currentPin = localStorage.getItem("admin_security_pin") || "4656"; // Default matches AdminMainActivity.kt 4656
+        this.superAdminPin = localStorage.getItem("admin_security_pin") || "4656"; // Superior Admin Master PIN
+        this.opsStaffPin = localStorage.getItem("admin_ops_pin") || "1234"; // Operational Team PIN
+        this.currentPin = this.superAdminPin;
+        this.failedAttempts = parseInt(localStorage.getItem("admin_failed_attempts") || "0", 10);
+        this.lockoutUntil = parseInt(localStorage.getItem("admin_lockout_until") || "0", 10);
+        this.alertEmail = "vishalsharma782635@gmail.com";
+        this.clientIp = "Detecting IP...";
 
         this.initData();
         this.initDOM();
+        this.fetchClientIp();
         this.startTimerLoop();
         this.render();
     }
@@ -58,6 +65,42 @@ class CampusAdminApp {
         localStorage.setItem(key, JSON.stringify(data));
     }
 
+    async fetchClientIp() {
+        try {
+            const res = await fetch("https://api.ipify.org?format=json", { cache: "no-store" });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.ip) {
+                    this.clientIp = data.ip;
+                    this.updateIpDisplays();
+                    return;
+                }
+            }
+        } catch (e) {}
+        try {
+            const res2 = await fetch("https://ipapi.co/json/");
+            if (res2.ok) {
+                const data2 = await res2.json();
+                if (data2 && data2.ip) {
+                    this.clientIp = data2.ip;
+                    this.updateIpDisplays();
+                    return;
+                }
+            }
+        } catch (e) {}
+        this.clientIp = (window.location.hostname && window.location.hostname !== "localhost")
+            ? window.location.hostname
+            : "127.0.0.1 (Local Client)";
+        this.updateIpDisplays();
+    }
+
+    updateIpDisplays() {
+        const clientEl = document.getElementById("client-ip-display");
+        if (clientEl) clientEl.textContent = this.clientIp;
+        const topEl = document.getElementById("topbar-ip-display");
+        if (topEl) topEl.textContent = this.clientIp;
+    }
+
     recordAudit(actionType, targetId, details, severity = "INFO") {
         const now = new Date();
         const formatted = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
@@ -67,6 +110,7 @@ class CampusAdminApp {
             id: `AUD-${Date.now() % 100000}`,
             timestamp: formatted,
             adminRole: this.activeRole,
+            ipAddress: this.clientIp || "127.0.0.1",
             actionType: actionType,
             targetEntityId: targetId,
             details: details,
@@ -162,23 +206,184 @@ class CampusAdminApp {
         document.getElementById("btn-reset-db")?.addEventListener("click", () => this.resetToDefaults());
     }
 
+    isAccountLocked() {
+        if (!this.lockoutUntil) return false;
+        if (Date.now() < this.lockoutUntil) return true;
+        // Lockout expired
+        this.lockoutUntil = 0;
+        this.failedAttempts = 0;
+        localStorage.removeItem("admin_lockout_until");
+        localStorage.setItem("admin_failed_attempts", "0");
+        return false;
+    }
+
+    updateLockoutCountdown() {
+        const el = document.getElementById("lockout-countdown");
+        if (!el || !this.lockoutUntil) return;
+        const diff = this.lockoutUntil - Date.now();
+        if (diff <= 0) {
+            this.isAccountLocked();
+            this.render();
+            return;
+        }
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        el.textContent = `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s remaining`;
+    }
+
     handleUnlock() {
+        if (this.isAccountLocked()) {
+            this.openEmergencyEmailModal();
+            return;
+        }
+
         const input = document.getElementById("pin-input");
         const errorEl = document.getElementById("pin-error");
         const entered = input.value.trim();
 
-        // Strictly only accept the configured/set Master PIN
-        if (entered === this.currentPin) {
+        // 1. Check Superior Administrator PIN (Default 4656)
+        if (entered === this.superAdminPin) {
+            this.activeRole = "SUPER_ADMIN";
+            this.failedAttempts = 0;
+            localStorage.setItem("admin_failed_attempts", "0");
+            localStorage.setItem("admin_active_role", "SUPER_ADMIN");
             this.isUnlocked = true;
             sessionStorage.setItem("admin_is_unlocked", "true");
             errorEl.classList.add("hidden");
+            this.recordAudit("AUTH_LOGIN_SUCCESS", "GATEWAY", "Superior Administrator unlocked console with Master PIN.", "INFO");
             this.render();
+            this.showToast("Welcome back, Superior Administrator!", "success");
+            return;
+        }
+
+        // 2. Check Operational Team PIN (Default 1234)
+        if (entered === this.opsStaffPin) {
+            this.activeRole = "OPERATIONS_OFFICER";
+            this.failedAttempts = 0;
+            localStorage.setItem("admin_failed_attempts", "0");
+            localStorage.setItem("admin_active_role", "OPERATIONS_OFFICER");
+            this.isUnlocked = true;
+            sessionStorage.setItem("admin_is_unlocked", "true");
+            errorEl.classList.add("hidden");
+            this.recordAudit("AUTH_LOGIN_SUCCESS", "GATEWAY", "Operational team member unlocked console with Staff PIN.", "INFO");
+            this.render();
+            this.showToast("Logged in as Operations Officer (Operational Access).", "success");
+            return;
+        }
+
+        // 3. Failed attempt handling (Max 3 attempts, then 24-hr lockout)
+        this.failedAttempts++;
+        localStorage.setItem("admin_failed_attempts", this.failedAttempts.toString());
+
+        if (this.failedAttempts >= 3) {
+            this.lockoutUntil = Date.now() + (24 * 60 * 60 * 1000); // 24 Hours
+            localStorage.setItem("admin_lockout_until", this.lockoutUntil.toString());
+            this.recordAudit("SECURITY_LOCKOUT_24H", "GATEWAY", `System locked for 24 hours after 3 consecutive failed login attempts. Emergency rescue warning dispatched to ${this.alertEmail}.`, "CRITICAL");
+            this.render();
+            this.openEmergencyEmailModal();
         } else {
-            errorEl.textContent = "Incorrect Security PIN. Access denied.";
+            const remaining = 3 - this.failedAttempts;
+            errorEl.textContent = `Incorrect PIN. Access denied. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before 24-hour lockout.`;
             errorEl.classList.remove("hidden");
+            this.recordAudit("AUTH_FAILED_ATTEMPT", "GATEWAY", `Failed unlock attempt (${this.failedAttempts}/3) entered.`, "WARNING");
             input.value = "";
             input.focus();
         }
+    }
+
+    rescueAccountNow() {
+        this.lockoutUntil = 0;
+        this.failedAttempts = 0;
+        localStorage.removeItem("admin_lockout_until");
+        localStorage.setItem("admin_failed_attempts", "0");
+        this.recordAudit("ACCOUNT_RESCUED", "SECURITY_GATEWAY", `24-hour security lockout cleared via immediate emergency rescue authorization for ${this.alertEmail}.`, "WARNING");
+        this.closeModal();
+        this.showToast("Account successfully rescued! You may now log in.", "success");
+        this.render();
+    }
+
+    openEmergencyEmailModal() {
+        const modal = document.getElementById("modal-generic");
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
+            ', ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+
+        modal.innerHTML = `
+            <div class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 z-50">
+                <div class="modal-content bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                    <!-- Email Client Header -->
+                    <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-5 border-b border-slate-700">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-700/60">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                                <span class="text-xs text-slate-300 font-mono ml-2">Security Dispatch Gateway</span>
+                            </div>
+                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-white font-bold text-lg">&times;</button>
+                        </div>
+                        <div class="mt-3 flex items-start justify-between">
+                            <div>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold text-[10px] uppercase tracking-wide">
+                                    🚨 High Priority Security Alert
+                                </span>
+                                <h3 class="text-sm font-bold text-white mt-1.5">[URGENT] Campus Admin Console Locked — 3 Failed Login Attempts</h3>
+                            </div>
+                            <span class="text-[11px] text-slate-400 font-mono">${dateStr}</span>
+                        </div>
+                        <div class="mt-3 text-[11px] text-slate-300 space-y-0.5 bg-slate-950/40 p-2.5 rounded-xl border border-slate-700/50">
+                            <div><span class="text-slate-400">To:</span> <strong class="text-amber-300 font-mono">${this.alertEmail}</strong></div>
+                            <div><span class="text-slate-400">From:</span> <span class="text-slate-200 font-mono">security-shield@campusapp.admin</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Email Body -->
+                    <div class="p-6 space-y-4 text-xs text-slate-700 max-h-[70vh] overflow-y-auto">
+                        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-2">
+                            <div class="font-extrabold flex items-center gap-2 text-amber-950">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+                                <span>Security Incident Warning</span>
+                            </div>
+                            <p class="leading-relaxed">
+                                Our security monitoring layer has flagged <strong>3 consecutive incorrect PIN attempts</strong> on the <strong>Campus Admin Operations Console</strong>.
+                                In compliance with master security protocols, the console has been placed under a <strong>strict 24-hour security lockout</strong>.
+                            </p>
+                        </div>
+
+                        <!-- Incident Telemetry -->
+                        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2">
+                            <div class="text-[11px] font-black uppercase text-slate-400 tracking-wider">Incident Telemetry Log</div>
+                            <div class="grid grid-cols-2 gap-2 text-[11px]">
+                                <div><span class="text-slate-400">Detected Client IP:</span><br/><strong class="text-slate-900 font-mono">${this.clientIp}</strong></div>
+                                <div><span class="text-slate-400">Lockout Duration:</span><br/><strong class="text-rose-600 font-mono">24 Hours (Active)</strong></div>
+                                <div><span class="text-slate-400">Target Role:</span><br/><strong class="text-purple-700 font-bold">Administrative Gateway</strong></div>
+                                <div><span class="text-slate-400">Incident Severity:</span><br/><strong class="text-rose-600 font-mono">CRITICAL (AUTH-LOCK)</strong></div>
+                            </div>
+                        </div>
+
+                        <p class="text-slate-600 leading-relaxed">
+                            If this was an unauthorized party attempting to breach your administrative console, <strong>no action is needed</strong>—the console remains completely sealed.
+                            <br/><br/>
+                            If this was you or an authorized colleague who was mistakenly locked out, you can click the rescue authorization button below to <strong>immediately clear the 24-hour lockout</strong> and retry your login.
+                        </p>
+
+                        <!-- Rescue Action Button -->
+                        <div class="pt-2">
+                            <button 
+                                onclick="app.rescueAccountNow()" 
+                                class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-sm shadow-xl shadow-emerald-700/25 transition-all transform active:scale-95 flex items-center justify-center gap-2.5">
+                                <i data-lucide="key-round" class="w-5 h-5"></i>
+                                <span>Rescue & Unlock Console Immediately</span>
+                            </button>
+                            <p class="text-[10px] text-center text-slate-400 mt-2">Authorized emergency override for ${this.alertEmail}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        modal.classList.remove("hidden");
+        if (window.lucide) lucide.createIcons();
     }
 
     lockConsole() {
@@ -190,7 +395,11 @@ class CampusAdminApp {
     resetToDefaults() {
         if (!confirm("Are you sure you want to reset all data and logs back to default seeds?")) return;
         localStorage.clear();
+        this.superAdminPin = "4656";
+        this.opsStaffPin = "1234";
         this.currentPin = "4656";
+        this.failedAttempts = 0;
+        this.lockoutUntil = 0;
         this.initData();
         this.showToast("Database reset to factory seeds successfully.");
         this.render();
@@ -203,8 +412,23 @@ class CampusAdminApp {
         if (!this.isUnlocked) {
             pinScreen.classList.remove("hidden");
             dashboardScreen.classList.add("hidden");
-            const pinInput = document.getElementById("pin-input");
-            if (pinInput) { pinInput.value = ""; pinInput.focus(); }
+
+            const pinEntry = document.getElementById("pin-entry-container");
+            const lockoutEntry = document.getElementById("lockout-container");
+            const clientIpEl = document.getElementById("client-ip-display");
+            if (clientIpEl) clientIpEl.textContent = this.clientIp;
+
+            if (this.isAccountLocked()) {
+                if (pinEntry) pinEntry.classList.add("hidden");
+                if (lockoutEntry) lockoutEntry.classList.remove("hidden");
+                this.updateLockoutCountdown();
+            } else {
+                if (pinEntry) pinEntry.classList.remove("hidden");
+                if (lockoutEntry) lockoutEntry.classList.add("hidden");
+                const pinInput = document.getElementById("pin-input");
+                if (pinInput) { pinInput.value = ""; pinInput.focus(); }
+            }
+            if (window.lucide) lucide.createIcons();
             return;
         }
 
@@ -223,6 +447,10 @@ class CampusAdminApp {
         const roleLabel = document.getElementById("topbar-role-label");
         if (roleLabel) {
             roleLabel.textContent = `Role: ${roleObj.name} >`;
+        }
+        const topIp = document.getElementById("topbar-ip-display");
+        if (topIp) {
+            topIp.textContent = this.clientIp;
         }
     }
 
@@ -2034,6 +2262,7 @@ class CampusAdminApp {
                 log.targetEntityId,
                 log.details,
                 log.adminRole,
+                log.ipAddress,
                 log.severity,
                 log.timestamp
             ].map(v => (v || "").toString().toLowerCase());
@@ -2108,9 +2337,14 @@ class CampusAdminApp {
 
                     <div class="text-slate-800 text-sm leading-relaxed">${log.details}</div>
 
-                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-semibold">
-                        <div>Actor: <span class="text-purple-700">${log.adminRole || 'ADMIN'}</span></div>
-                        <div>Target: <span class="text-slate-800">${log.targetEntityId || '-'}</span></div>
+                    <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 font-semibold">
+                        <div class="flex items-center gap-2">
+                            <span>Actor: <strong class="text-purple-700">${log.adminRole || 'ADMIN'}</strong></span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-mono text-[10px] border border-purple-100">
+                                <i data-lucide="globe" class="w-3 h-3 text-purple-400"></i> ${log.ipAddress || '127.0.0.1'}
+                            </span>
+                        </div>
+                        <div>Target: <span class="text-slate-800 font-bold">${log.targetEntityId || '-'}</span></div>
                     </div>
                 </div>
             `;
@@ -2271,13 +2505,14 @@ class CampusAdminApp {
     }
 
     downloadAuditCsv() {
-        const rows = [["ID", "Timestamp", "AdminRole", "ActionType", "TargetID", "Severity", "Details"]];
+        const rows = [["ID", "Timestamp", "AdminRole", "IP_Address", "ActionType", "TargetID", "Severity", "Details"]];
         this.auditLogs.forEach(l => {
             const escapedDetails = (l.details || "").replace(/"/g, '""');
             rows.push([
                 l.id,
                 `"${l.timestamp}"`,
                 l.adminRole,
+                `"${l.ipAddress || '127.0.0.1'}"`,
                 l.actionType,
                 `"${l.targetEntityId}"`,
                 l.severity,
@@ -2497,12 +2732,82 @@ class CampusAdminApp {
     }
 
     switchRole(roleId) {
+        if (roleId === "SUPER_ADMIN" && this.activeRole !== "SUPER_ADMIN") {
+            this.openElevateToSuperAdminModal();
+            return;
+        }
         this.activeRole = roleId;
         localStorage.setItem("admin_active_role", roleId);
         this.recordAudit("ROLE_SWITCH", roleId, `Switched active console role to ${ADMIN_ROLES[roleId].name}.`, "INFO");
         this.closeModal();
         this.showToast(`Switched active role to ${ADMIN_ROLES[roleId].name}`);
         this.render();
+    }
+
+    openElevateToSuperAdminModal() {
+        const modal = document.getElementById("modal-generic");
+        modal.innerHTML = `
+            <div class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 z-50">
+                <div class="modal-content bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                                <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                            </span>
+                            <h3 class="text-sm font-extrabold text-slate-900">Elevate to Superior Admin</h3>
+                        </div>
+                        <button onclick="app.closeModal()" class="font-bold text-slate-400 text-xl">&times;</button>
+                    </div>
+
+                    <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                        Privilege Elevation Shield: Superior Administrator has unrestricted access to all policies and data. Please enter the Master PIN (4656) to confirm your identity.
+                    </p>
+
+                    <form onsubmit="app.verifyElevateToSuperAdmin(event)" class="space-y-4 mt-4 text-xs">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Enter Master PIN:</label>
+                            <input 
+                                type="password" 
+                                maxlength="6" 
+                                id="elevate-pin-input" 
+                                required 
+                                class="w-full px-4 py-2.5 border-2 border-slate-200 focus:border-purple-600 rounded-xl text-center text-xl tracking-widest font-mono font-bold outline-none" 
+                                placeholder="****"
+                                autocomplete="off"
+                            />
+                            <p id="elevate-pin-error" class="text-rose-600 font-bold mt-1.5 hidden"></p>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button type="button" onclick="app.closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold">Cancel</button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold">Verify & Elevate</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        modal.classList.remove("hidden");
+        if (window.lucide) lucide.createIcons();
+        const inp = document.getElementById("elevate-pin-input");
+        if (inp) inp.focus();
+    }
+
+    verifyElevateToSuperAdmin(e) {
+        e.preventDefault();
+        const entered = document.getElementById("elevate-pin-input").value.trim();
+        const err = document.getElementById("elevate-pin-error");
+
+        if (entered === this.superAdminPin) {
+            this.activeRole = "SUPER_ADMIN";
+            localStorage.setItem("admin_active_role", "SUPER_ADMIN");
+            this.recordAudit("PRIVILEGE_ELEVATION_GRANTED", "ROLE_SUPER_ADMIN", "Privileges elevated to Superior Administrator upon Master PIN verification.", "INFO");
+            this.closeModal();
+            this.showToast("Privilege elevation verified: Switched to Superior Administrator.", "success");
+            this.render();
+        } else {
+            this.recordAudit("UNAUTHORIZED_ELEVATION_ATTEMPT", "ROLE_SUPER_ADMIN", `Unauthorized attempt to elevate to Superior Administrator from IP: ${this.clientIp}. Incorrect Master PIN.`, "CRITICAL");
+            err.textContent = "Incorrect Master PIN. Access denied.";
+            err.classList.remove("hidden");
+        }
     }
 
     // 2-Step Change Security PIN Modal matching ChangePinDialog in AdminMainActivity.kt
@@ -2601,6 +2906,7 @@ class CampusAdminApp {
         }
 
         this.currentPin = p1;
+        this.superAdminPin = p1;
         localStorage.setItem("admin_security_pin", p1);
         localStorage.setItem("admin_master_pin", p1);
 

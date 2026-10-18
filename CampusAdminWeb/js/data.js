@@ -4,10 +4,19 @@
 const ADMIN_ROLES = {
     SUPER_ADMIN: {
         id: "SUPER_ADMIN",
-        name: "Super Administrator",
+        name: "Superior Administrator",
         badgeColor: "bg-purple-600 text-white",
-        description: "Full unrestricted access to all operations, accounts, and audits.",
+        description: "Full unrestricted access to all operations, master security settings, and audits.",
+        defaultPin: "4656",
         allowedTabs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    },
+    OPERATIONS_OFFICER: {
+        id: "OPERATIONS_OFFICER",
+        name: "Operations Officer",
+        badgeColor: "bg-emerald-500 text-white",
+        description: "Operational team access: Live Orders, Runners, Cab Pools, Meal Circles, and Rentals.",
+        defaultPin: "1234",
+        allowedTabs: [0, 1, 3, 4, 6, 10]
     },
     FINANCIAL_AUDITOR: {
         id: "FINANCIAL_AUDITOR",
@@ -15,13 +24,6 @@ const ADMIN_ROLES = {
         badgeColor: "bg-sky-500 text-white",
         description: "Access limited to Financial Ledger, Wallet balances, Escrow, and Reports.",
         allowedTabs: [0, 1, 2, 5, 8, 9]
-    },
-    OPERATIONS_OFFICER: {
-        id: "OPERATIONS_OFFICER",
-        name: "Operations Officer",
-        badgeColor: "bg-emerald-500 text-white",
-        description: "Access limited to Live Orders, Runners, Cab Pools, Meal Circles, and Rentals.",
-        allowedTabs: [0, 1, 4, 6, 10]
     },
     SAFETY_DISPUTE_OFFICER: {
         id: "SAFETY_DISPUTE_OFFICER",
@@ -439,6 +441,7 @@ const SEED_AUDIT_LOGS = [
         id: "AUD-1001",
         timestamp: "11 Oct 2026, 10:15:20 AM",
         adminRole: "SUPER_ADMIN",
+        ipAddress: "103.187.228.184",
         actionType: "SYSTEM_INITIALIZE",
         targetEntityId: "SYSTEM",
         details: "Admin Master Web Operations Console initialized with secure client state.",
@@ -448,6 +451,7 @@ const SEED_AUDIT_LOGS = [
         id: "AUD-1002",
         timestamp: "11 Oct 2026, 12:45:10 PM",
         adminRole: "FINANCIAL_AUDITOR",
+        ipAddress: "192.168.1.105",
         actionType: "REPORT_EXPORT",
         targetEntityId: "FIN-CSV",
         details: "Generated RFC-compliant CSV Financial and Settlement Report for current cycle.",
