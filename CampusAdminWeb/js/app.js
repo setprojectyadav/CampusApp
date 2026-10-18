@@ -873,12 +873,6 @@ class CampusAdminApp {
             topIp.textContent = this.clientIp;
         }
 
-        const curTab = TAB_DEFINITIONS.find(t => t.id === this.selectedTab) || TAB_DEFINITIONS[0];
-        const activeName = document.getElementById("active-tab-name");
-        if (activeName) {
-            activeName.textContent = curTab.label.toUpperCase();
-        }
-
         // Hide Master Administrative settings for non-Superior Admin roles
         const btnChangePin = document.getElementById("btn-change-pin");
         if (btnChangePin) {
@@ -908,15 +902,14 @@ class CampusAdminApp {
             return `
                 <button 
                     onclick="app.setTab(${tabIdx})" 
-                    class="relative flex items-center gap-2.5 px-4 py-2 rounded-xl whitespace-nowrap transition-all duration-200 ${
+                    class="nav-tab-btn flex items-center gap-2 px-3.5 py-2 rounded-xl whitespace-nowrap text-xs transition-colors duration-150 ${
                         isSelected 
-                            ? 'active-nav-tab bg-white text-purple-950 font-black shadow-xl ring-2 ring-purple-300 ring-offset-2 ring-offset-purple-950 scale-105 border-b-4 border-purple-700' 
-                            : 'text-purple-200/80 hover:bg-white/10 hover:text-white font-semibold text-xs'
+                            ? 'active-nav-tab bg-white text-purple-950 font-black shadow-md' 
+                            : 'text-purple-200/80 hover:bg-white/10 hover:text-white font-semibold'
                     }"
-                    title="Section: ${tab.label}">
-                    <i data-lucide="${tab.icon}" class="w-4 h-4 ${isSelected ? 'stroke-[2.8] text-purple-700' : 'stroke-[1.8] text-purple-300'}"></i>
-                    <span class="${isSelected ? 'font-black tracking-wide text-xs text-purple-950' : 'font-semibold text-xs'}">${tab.label}</span>
-                    ${isSelected ? '<span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse ml-0.5 shadow-sm"></span>' : ''}
+                    title="${tab.label}">
+                    <i data-lucide="${tab.icon}" class="w-3.5 h-3.5 ${isSelected ? 'stroke-[2.5] text-purple-700' : 'stroke-[1.8] text-purple-200'}"></i>
+                    <span class="${isSelected ? 'font-black tracking-wide text-purple-950' : 'font-semibold'}">${tab.label}</span>
                 </button>
             `;
         }).join("");
@@ -938,14 +931,6 @@ class CampusAdminApp {
         const main = document.getElementById("tab-content-area");
         if (!main) return;
 
-        const currentTabObj = TAB_DEFINITIONS.find(t => t.id === this.selectedTab) || TAB_DEFINITIONS[0];
-
-        // Update Topbar Active Tab Badge
-        const topbarActiveName = document.getElementById("active-tab-name");
-        if (topbarActiveName) {
-            topbarActiveName.textContent = currentTabObj.label.toUpperCase();
-        }
-
         let content = "";
         switch (this.selectedTab) {
             case 0: content = this.renderOverviewTab(); break;
@@ -962,17 +947,7 @@ class CampusAdminApp {
             default: content = `<div class="p-8 text-center text-slate-500">Select a valid tab</div>`;
         }
 
-        main.innerHTML = `
-            <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-100 border border-purple-300 text-purple-950 shadow-sm self-start">
-                    <span class="w-2.5 h-2.5 rounded-full bg-purple-700 animate-pulse"></span>
-                    <i data-lucide="${currentTabObj.icon}" class="w-4 h-4 text-purple-700 stroke-[2.8]"></i>
-                    <span class="text-xs font-black uppercase tracking-wider">ACTIVE SECTION: <strong class="underline decoration-purple-600 decoration-2">${currentTabObj.label.toUpperCase()}</strong></span>
-                </div>
-                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Workspace: <span class="text-purple-700 font-black">${(ADMIN_ROLES[this.activeRole] || {}).name || 'Admin'}</span></span>
-            </div>
-            ${content}
-        `;
+        main.innerHTML = content;
         if (window.lucide) lucide.createIcons();
     }
 
