@@ -167,14 +167,14 @@ class CampusAdminApp {
         const errorEl = document.getElementById("pin-error");
         const entered = input.value.trim();
 
-        // Accepts 4656 (Android app default), 1234 (quick access), or custom saved PIN
-        if (entered === this.currentPin || entered === "4656" || entered === "1234") {
+        // Strictly only accept the configured/set Master PIN
+        if (entered === this.currentPin) {
             this.isUnlocked = true;
             sessionStorage.setItem("admin_is_unlocked", "true");
             errorEl.classList.add("hidden");
             this.render();
         } else {
-            errorEl.textContent = "Incorrect Security PIN. Default master PIN is 4656 (or 1234).";
+            errorEl.textContent = "Incorrect Security PIN. Access denied.";
             errorEl.classList.remove("hidden");
             input.value = "";
             input.focus();
@@ -2540,7 +2540,7 @@ class CampusAdminApp {
         const err = document.getElementById("curr-pin-error");
         const val = input.value.trim();
 
-        if (val === this.currentPin || val === "4656" || val === "1234") {
+        if (val === this.currentPin) {
             this.openSetNewPinModal();
         } else {
             err.textContent = "Incorrect current PIN. Verification failed.";

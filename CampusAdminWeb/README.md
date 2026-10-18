@@ -8,7 +8,7 @@ Adapted with 100% feature parity from the Android `CampusAdminApp`.
 
 ## 🚀 Features
 
-- **Master Security & RBAC**: Dual default Master PIN unlock (`4656` / `1234`), 2-step PIN reset workflow, and real-time session management.
+- **Master Security & RBAC**: Master Security PIN authentication, 2-step PIN reset workflow, and real-time session management.
 - **Operations Overview**: Real-time KPI telemetry (Live Orders, Active Fleet, Open Disputes, Blocked Users), database latency status, connected user counters, and system-wide maintenance mode controls.
 - **Order Management & Live Tracking**: Full order lifecycle controls (Assign, Dispatch, Deliver, Cancel, Refund), live tracking timeline modal, OTP verification, and runner assignment.
 - **Universal Case-Insensitive Search**: Non-blocking instantaneous search bar across every section (Orders, Students, Fleet, Services, Disputes, Lost & Found, Fraud, Audit Logs).
@@ -61,7 +61,6 @@ Because this project is built using modern standard web technologies with **zero
 
 ---
 
-## 🔑 Default Credentials
-
-- **Master PIN**: `4656` *(matching original app)* or `1234`
-- You can change the Master PIN anytime directly inside the dashboard settings modal.
+## 🔑 Credentials & Access
+- Initial Master PIN: `4656` *(matching original app)*
+- You can change the Master PIN anytime directly inside the dashboard settings modal. Once changed, only your newly set PIN will be accepted.
