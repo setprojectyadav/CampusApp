@@ -61,19 +61,43 @@ Because this project is built using modern standard web technologies with **zero
 
 ---
 
-## 🔑 Security, Credentials & Access Architecture
+## 🔑 Security, Credentials & Role-Based Access Architecture
 
-- **Superior Administrator Access (Full Control)**:
-  - Default Master PIN: `4656`
-  - Grants unrestricted access to all 11 modules, version policies, database resets, and Master PIN management.
-- **Operational Team Access (Restricted Ops)**:
-  - Default Staff PIN: `1234`
-  - Unlocks console directly as **Operations Officer** (orders, runners, lost & found, services).
-  - Protected against privilege escalation: switching to Superior Administrator requires Master PIN verification.
-- **System IP Tracking & Telemetry**:
-  - Automatically captures the operator's active system/public IP address at the moment any action is performed.
-  - Recorded in the immutable audit trail and exported in CSV reports.
-- **Brute-Force Lockout Protection**:
-  - Maximum of **3 failed login attempts**.
-  - Exceeding 3 attempts enforces a **strict 24-hour security lockout**.
-  - An emergency security alert with a one-click rescue authorization is dispatched to `vishalsharma782635@gmail.com`.
+Each role has an independent security PIN and designated operational workspace:
+
+| Role | PIN | Accessible Tabs / Modules | Operational Scope |
+| :--- | :--- | :--- | :--- |
+| **Superior Administrator** | `4656` | All 11 Tabs (0–10) | Master control: System config, App version enforcement, PIN management, Factory resets, Full Telemetry |
+| **Operations Officer** | `1234` | Orders (1), Riders (3), Services (4), Lost & Found (6), Feedback (10) | Campus operations: Live order dispatch, Rider fleet management, Service approvals, Lost & Found vault |
+| **Financial Auditor** | `5678` | Overview (0), Orders (1), Disputes (5), Audit Trail (8), Reports (9) | Financial oversight: Escrow balances, Platform commission fees, Dispute refunds, Immutable audit trail & RFC CSV exports |
+| **Safety & Dispute Officer** | `1011` | Students (2), Disputes (5), Lost & Found (6), Fraud Scanner (7) | Discipline & Safety: Student warnings/suspensions, Dispute arbitration, AI fraud detection & anomaly mitigation |
+
+### 🛡️ Privilege Escalation & Switch Guard
+- When logged in, any operator attempting to switch to another role is prompted to enter that target role's designated PIN.
+- Superior Administrator has master authority to freely preview all workspaces without re-authentication.
+- All switch attempts, whether approved or rejected, are immutably logged with the operator's real-time system IP address.
+
+### 🌐 System IP Detection & Audit Logging
+- Automatically captures the operator's active system/public IP address dynamically at the moment any change is committed.
+- Records the IP address alongside the role badge in the immutable Audit Trail and includes it in all exported CSV logs.
+
+### 🔒 3-Attempt Security Lockout & 24-Hour Emergency Rescue
+- Enforces a maximum limit of **3 consecutive failed PIN attempts**.
+- After 3 failed attempts, the console is locked for **24 hours**.
+- Dispatches a security warning notification modal addressed to **`vishalsharma782635@gmail.com`** containing:
+  - Exact UTC & IST timestamp of the security breach.
+  - Detected IP address and device telemetry.
+  - A secure **"Immediate Emergency Account Rescue"** button allowing the legitimate owner to immediately reset attempts and recover console access without waiting 24 hours.
+
+---
+
+## ⚡ Live Firebase Cloud Sync (CampusApp & CampusAdminWeb)
+
+- **Firebase Project**: `campusapp-e8435`
+- **Realtime Database**: `https://campusapp-e8435-default-rtdb.firebaseio.com`
+- **Live Bi-Directional Nodes**:
+  - `orders/` — Synchronizes order placement, ETA, OTP verification, runner assignment, billing corrections, and cancellations in real time.
+  - `students/` — Synchronizes student profile states, disciplinary warnings, and temporary or permanent blocks.
+  - `riders/` — Synchronizes runner active duties, live ratings, verification statuses, and fleet health.
+  - `disputes/` — Synchronizes student dispute claims, proof attachments, and administrative refund payouts.
+  - `audit_trail/` — Synchronizes immutable administrative action entries with detected client IP addresses.

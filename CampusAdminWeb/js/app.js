@@ -22,8 +22,10 @@ class CampusAdminApp {
             feedbackSubTab: 0 // 0: Suggestions, 1: Roadmap
         };
         this.severityFilter = "ALL";
-        this.superAdminPin = localStorage.getItem("admin_security_pin") || "4656"; // Superior Admin Master PIN
-        this.opsStaffPin = localStorage.getItem("admin_ops_pin") || "1234"; // Operational Team PIN
+        this.superAdminPin = localStorage.getItem("admin_security_pin") || "4656"; // Superior Admin Master PIN (4656)
+        this.opsStaffPin = localStorage.getItem("admin_ops_pin") || "1234"; // Operational Team PIN (1234)
+        this.financialAuditorPin = localStorage.getItem("admin_fin_pin") || "5678"; // Financial Auditor PIN (5678)
+        this.safetyDisputePin = localStorage.getItem("admin_safety_pin") || "1011"; // Safety & Dispute PIN (1011)
         this.currentPin = this.superAdminPin;
         this.failedAttempts = parseInt(localStorage.getItem("admin_failed_attempts") || "0", 10);
         this.lockoutUntil = parseInt(localStorage.getItem("admin_lockout_until") || "0", 10);
@@ -63,6 +65,35 @@ class CampusAdminApp {
 
     save(key, data) {
         localStorage.setItem(key, JSON.stringify(data));
+        // Automatic Realtime Cloud Synchronization with Firebase campusapp-e8435
+        if (window.cloudSync && window.cloudSync.db) {
+            try {
+                if (key === "app_orders_list") {
+                    const updates = {};
+                    (data || []).forEach(o => { updates[o.id.replace(/[.#$[\]]/g, "_")] = o; });
+                    window.cloudSync.db.ref("orders").update(updates);
+                } else if (key === "campus_students_list") {
+                    const updates = {};
+                    (data || []).forEach(s => { updates[s.id.replace(/[.#$[\]]/g, "_")] = s; });
+                    window.cloudSync.db.ref("students").update(updates);
+                } else if (key === "campus_riders_list") {
+                    const updates = {};
+                    (data || []).forEach(r => { updates[r.id.replace(/[.#$[\]]/g, "_")] = r; });
+                    window.cloudSync.db.ref("riders").update(updates);
+                } else if (key === "admin_dispute_cases") {
+                    const updates = {};
+                    (data || []).forEach(d => { updates[d.id.replace(/[.#$[\]]/g, "_")] = d; });
+                    window.cloudSync.db.ref("disputes").update(updates);
+                } else if (key === "admin_audit_trail_log") {
+                    const latest = (data || [])[0];
+                    if (latest && latest.id) {
+                        window.cloudSync.db.ref(`audit_trail/${latest.id.replace(/[.#$[\]]/g, "_")}`).set(latest);
+                    }
+                }
+            } catch (e) {
+                console.warn("[CloudSync] Background sync exception:", e);
+            }
+        }
     }
 
     async fetchClientIp() {
@@ -245,6 +276,7 @@ class CampusAdminApp {
         // 1. Check Superior Administrator PIN (Default 4656)
         if (entered === this.superAdminPin) {
             this.activeRole = "SUPER_ADMIN";
+            this.selectedTab = 0;
             this.failedAttempts = 0;
             localStorage.setItem("admin_failed_attempts", "0");
             localStorage.setItem("admin_active_role", "SUPER_ADMIN");
@@ -260,6 +292,7 @@ class CampusAdminApp {
         // 2. Check Operational Team PIN (Default 1234)
         if (entered === this.opsStaffPin) {
             this.activeRole = "OPERATIONS_OFFICER";
+            this.selectedTab = 1; // Direct route to Orders
             this.failedAttempts = 0;
             localStorage.setItem("admin_failed_attempts", "0");
             localStorage.setItem("admin_active_role", "OPERATIONS_OFFICER");
@@ -268,7 +301,39 @@ class CampusAdminApp {
             errorEl.classList.add("hidden");
             this.recordAudit("AUTH_LOGIN_SUCCESS", "GATEWAY", "Operational team member unlocked console with Staff PIN.", "INFO");
             this.render();
-            this.showToast("Logged in as Operations Officer (Operational Access).", "success");
+            this.showToast("Logged in as Operations Officer (Operations Tabs Access).", "success");
+            return;
+        }
+
+        // 3. Check Financial Auditor PIN (Default 5678)
+        if (entered === this.financialAuditorPin) {
+            this.activeRole = "FINANCIAL_AUDITOR";
+            this.selectedTab = 0; // Overview & Financial Ledgers
+            this.failedAttempts = 0;
+            localStorage.setItem("admin_failed_attempts", "0");
+            localStorage.setItem("admin_active_role", "FINANCIAL_AUDITOR");
+            this.isUnlocked = true;
+            sessionStorage.setItem("admin_is_unlocked", "true");
+            errorEl.classList.add("hidden");
+            this.recordAudit("AUTH_LOGIN_SUCCESS", "GATEWAY", "Financial Auditor unlocked console with Auditor PIN.", "INFO");
+            this.render();
+            this.showToast("Logged in as Financial Auditor (Ledger & Reports Access).", "success");
+            return;
+        }
+
+        // 4. Check Safety & Dispute Officer PIN (Default 1011)
+        if (entered === this.safetyDisputePin) {
+            this.activeRole = "SAFETY_DISPUTE_OFFICER";
+            this.selectedTab = 2; // Direct route to Students & Safety
+            this.failedAttempts = 0;
+            localStorage.setItem("admin_failed_attempts", "0");
+            localStorage.setItem("admin_active_role", "SAFETY_DISPUTE_OFFICER");
+            this.isUnlocked = true;
+            sessionStorage.setItem("admin_is_unlocked", "true");
+            errorEl.classList.add("hidden");
+            this.recordAudit("AUTH_LOGIN_SUCCESS", "GATEWAY", "Safety & Dispute Officer unlocked console with Security PIN.", "INFO");
+            this.render();
+            this.showToast("Logged in as Safety & Dispute Officer (Disputes & Fraud Scanner Access).", "success");
             return;
         }
 
@@ -397,6 +462,8 @@ class CampusAdminApp {
         localStorage.clear();
         this.superAdminPin = "4656";
         this.opsStaffPin = "1234";
+        this.financialAuditorPin = "5678";
+        this.safetyDisputePin = "1011";
         this.currentPin = "4656";
         this.failedAttempts = 0;
         this.lockoutUntil = 0;
@@ -452,6 +519,16 @@ class CampusAdminApp {
         if (topIp) {
             topIp.textContent = this.clientIp;
         }
+
+        // Hide Master Administrative settings for non-Superior Admin roles
+        const btnChangePin = document.getElementById("btn-change-pin");
+        if (btnChangePin) {
+            btnChangePin.style.display = this.activeRole === "SUPER_ADMIN" ? "inline-flex" : "none";
+        }
+        const btnResetDb = document.getElementById("btn-reset-db");
+        if (btnResetDb) {
+            btnResetDb.style.display = this.activeRole === "SUPER_ADMIN" ? "inline-flex" : "none";
+        }
     }
 
     renderNavigationTabs() {
@@ -483,6 +560,13 @@ class CampusAdminApp {
     }
 
     setTab(idx) {
+        const roleObj = ADMIN_ROLES[this.activeRole] || ADMIN_ROLES.SUPER_ADMIN;
+        if (!roleObj.allowedTabs.includes(idx)) {
+            this.showToast(`Access Restricted: Your active role (${roleObj.name}) does not have permission for this section.`, "error");
+            this.selectedTab = roleObj.allowedTabs[0] || 0;
+            this.render();
+            return;
+        }
         this.selectedTab = idx;
         this.render();
     }
@@ -2731,20 +2815,42 @@ class CampusAdminApp {
         modal.classList.remove("hidden");
     }
 
-    switchRole(roleId) {
-        if (roleId === "SUPER_ADMIN" && this.activeRole !== "SUPER_ADMIN") {
-            this.openElevateToSuperAdminModal();
-            return;
+    getRolePin(roleId) {
+        switch (roleId) {
+            case "SUPER_ADMIN": return this.superAdminPin;
+            case "OPERATIONS_OFFICER": return this.opsStaffPin;
+            case "FINANCIAL_AUDITOR": return this.financialAuditorPin;
+            case "SAFETY_DISPUTE_OFFICER": return this.safetyDisputePin;
+            default: return null;
         }
-        this.activeRole = roleId;
-        localStorage.setItem("admin_active_role", roleId);
-        this.recordAudit("ROLE_SWITCH", roleId, `Switched active console role to ${ADMIN_ROLES[roleId].name}.`, "INFO");
-        this.closeModal();
-        this.showToast(`Switched active role to ${ADMIN_ROLES[roleId].name}`);
-        this.render();
     }
 
-    openElevateToSuperAdminModal() {
+    switchRole(roleId) {
+        if (roleId === this.activeRole) {
+            this.closeModal();
+            return;
+        }
+
+        // If currently Super Admin, Super Admin has master authority to switch to any role for previewing/auditing
+        if (this.activeRole === "SUPER_ADMIN") {
+            this.activeRole = roleId;
+            localStorage.setItem("admin_active_role", roleId);
+            const roleObj = ADMIN_ROLES[roleId] || ADMIN_ROLES.SUPER_ADMIN;
+            this.selectedTab = roleObj.allowedTabs[0] || 0;
+            this.recordAudit("ROLE_VIEW_SWITCH", roleId, `Superior Administrator switched active view to ${roleObj.name}.`, "INFO");
+            this.closeModal();
+            this.showToast(`Switched active view to ${roleObj.name}`);
+            this.render();
+            return;
+        }
+
+        // Any non-Super Admin must authenticate with the target role's designated PIN!
+        this.openRoleVerificationModal(roleId);
+    }
+
+    openRoleVerificationModal(targetRoleId) {
+        const targetRole = ADMIN_ROLES[targetRoleId];
+        if (!targetRole) return;
         const modal = document.getElementById("modal-generic");
         modal.innerHTML = `
             <div class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 z-50">
@@ -2752,34 +2858,40 @@ class CampusAdminApp {
                     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                         <div class="flex items-center gap-2">
                             <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
-                                <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                                <i data-lucide="shield-check" class="w-4 h-4"></i>
                             </span>
-                            <h3 class="text-sm font-extrabold text-slate-900">Elevate to Superior Admin</h3>
+                            <h3 class="text-sm font-extrabold text-slate-900">Authenticate Role Switch</h3>
                         </div>
                         <button onclick="app.closeModal()" class="font-bold text-slate-400 text-xl">&times;</button>
                     </div>
 
-                    <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-                        Privilege Elevation Shield: Superior Administrator has unrestricted access to all policies and data. Please enter the Master PIN (4656) to confirm your identity.
+                    <div class="mt-3 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Console Role</div>
+                        <div class="text-sm font-black text-slate-900 mt-0.5">${targetRole.name}</div>
+                        <div class="text-[11px] text-slate-500 mt-1">${targetRole.description}</div>
+                    </div>
+
+                    <p class="text-xs text-slate-500 mt-3 leading-relaxed">
+                        Enter the designated security PIN for <strong>${targetRole.name}</strong> to authenticate and switch access permissions.
                     </p>
 
-                    <form onsubmit="app.verifyElevateToSuperAdmin(event)" class="space-y-4 mt-4 text-xs">
+                    <form onsubmit="app.verifyRolePinAndSwitch(event, '${targetRoleId}')" class="space-y-4 mt-4 text-xs">
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Enter Master PIN:</label>
+                            <label class="block font-bold text-slate-700 mb-1">Enter ${targetRole.name} PIN:</label>
                             <input 
                                 type="password" 
                                 maxlength="6" 
-                                id="elevate-pin-input" 
+                                id="role-pin-input" 
                                 required 
                                 class="w-full px-4 py-2.5 border-2 border-slate-200 focus:border-purple-600 rounded-xl text-center text-xl tracking-widest font-mono font-bold outline-none" 
                                 placeholder="****"
                                 autocomplete="off"
                             />
-                            <p id="elevate-pin-error" class="text-rose-600 font-bold mt-1.5 hidden"></p>
+                            <p id="role-pin-error" class="text-rose-600 font-bold mt-1.5 hidden"></p>
                         </div>
                         <div class="flex justify-end gap-2 pt-1">
                             <button type="button" onclick="app.closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold">Cancel</button>
-                            <button type="submit" class="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold">Verify & Elevate</button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold">Authenticate & Switch</button>
                         </div>
                     </form>
                 </div>
@@ -2787,26 +2899,122 @@ class CampusAdminApp {
         `;
         modal.classList.remove("hidden");
         if (window.lucide) lucide.createIcons();
-        const inp = document.getElementById("elevate-pin-input");
+        const inp = document.getElementById("role-pin-input");
         if (inp) inp.focus();
     }
 
-    verifyElevateToSuperAdmin(e) {
+    verifyRolePinAndSwitch(e, targetRoleId) {
         e.preventDefault();
-        const entered = document.getElementById("elevate-pin-input").value.trim();
-        const err = document.getElementById("elevate-pin-error");
+        const entered = document.getElementById("role-pin-input").value.trim();
+        const err = document.getElementById("role-pin-error");
+        const targetRole = ADMIN_ROLES[targetRoleId];
+        const correctPin = this.getRolePin(targetRoleId);
 
-        if (entered === this.superAdminPin) {
-            this.activeRole = "SUPER_ADMIN";
-            localStorage.setItem("admin_active_role", "SUPER_ADMIN");
-            this.recordAudit("PRIVILEGE_ELEVATION_GRANTED", "ROLE_SUPER_ADMIN", "Privileges elevated to Superior Administrator upon Master PIN verification.", "INFO");
+        if (entered === correctPin) {
+            this.activeRole = targetRoleId;
+            localStorage.setItem("admin_active_role", targetRoleId);
+            this.selectedTab = targetRole.allowedTabs[0] || 0;
+            this.recordAudit("ROLE_AUTHENTICATED_SWITCH", targetRoleId, `Switched active role to ${targetRole.name} upon successful PIN authentication from IP: ${this.clientIp}.`, "INFO");
             this.closeModal();
-            this.showToast("Privilege elevation verified: Switched to Superior Administrator.", "success");
+            this.showToast(`Authenticated: Switched to ${targetRole.name}`, "success");
             this.render();
         } else {
-            this.recordAudit("UNAUTHORIZED_ELEVATION_ATTEMPT", "ROLE_SUPER_ADMIN", `Unauthorized attempt to elevate to Superior Administrator from IP: ${this.clientIp}. Incorrect Master PIN.`, "CRITICAL");
-            err.textContent = "Incorrect Master PIN. Access denied.";
+            this.recordAudit("UNAUTHORIZED_ROLE_SWITCH", targetRoleId, `Unauthorized attempt to switch to ${targetRole.name} from IP: ${this.clientIp}. Incorrect PIN.`, "CRITICAL");
+            err.textContent = `Incorrect PIN for ${targetRole.name}. Access denied.`;
             err.classList.remove("hidden");
+        }
+    }
+
+    // Cloud Telemetry & Sync Inspection Modal
+    openCloudSyncModal() {
+        const isLive = window.cloudSync && window.cloudSync.isConnected;
+        const lastSync = (window.cloudSync && window.cloudSync.lastSyncTime) ? window.cloudSync.lastSyncTime : "Just now";
+        const modal = document.getElementById("modal-generic");
+        modal.innerHTML = `
+            <div class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 z-50">
+                <div class="modal-content bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-xl ${isLive ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'} flex items-center justify-center">
+                                <i data-lucide="cloud-lightning" class="w-4 h-4"></i>
+                            </span>
+                            <div>
+                                <h3 class="text-sm font-extrabold text-slate-900">Firebase Realtime Cloud Sync</h3>
+                                <div class="text-[10px] text-slate-400 font-mono">campusapp-e8435 &bull; Realtime Database</div>
+                            </div>
+                        </div>
+                        <button onclick="app.closeModal()" class="font-bold text-slate-400 text-xl">&times;</button>
+                    </div>
+
+                    <div class="space-y-3 mt-4 text-xs">
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                            <div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sync Engine Status</div>
+                                <div class="text-xs font-black ${isLive ? 'text-emerald-700' : 'text-amber-700'} flex items-center gap-1.5 mt-0.5">
+                                    <span class="w-2 h-2 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span>
+                                    <span>${isLive ? 'Active & Synchronized' : 'Connecting / Local Buffer Active'}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Last Heartbeat</div>
+                                <div class="text-xs font-mono font-bold text-slate-700 mt-0.5">${lastSync}</div>
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-100 text-purple-900 space-y-2">
+                            <div class="font-bold text-xs flex items-center gap-1.5">
+                                <i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-purple-700"></i>
+                                <span>Bi-Directional Android & Web Synchronization</span>
+                            </div>
+                            <p class="text-[11px] text-purple-800/80 leading-relaxed">
+                                Any updates made in <strong>CampusApp</strong> (e.g. newly placed student orders, rider status updates, dispute tickets) are pushed directly to Firebase Realtime Database and instantaneously appear here in <strong>CampusAdminWeb</strong> without refreshing.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-[11px]">
+                            <div class="p-2.5 rounded-xl border border-slate-100 bg-white">
+                                <div class="text-slate-400 font-semibold">Orders Node</div>
+                                <div class="font-bold text-slate-800 font-mono mt-0.5">${this.orders.length} Synced</div>
+                            </div>
+                            <div class="p-2.5 rounded-xl border border-slate-100 bg-white">
+                                <div class="text-slate-400 font-semibold">Students Node</div>
+                                <div class="font-bold text-slate-800 font-mono mt-0.5">${this.students.length} Synced</div>
+                            </div>
+                            <div class="p-2.5 rounded-xl border border-slate-100 bg-white">
+                                <div class="text-slate-400 font-semibold">Riders Node</div>
+                                <div class="font-bold text-slate-800 font-mono mt-0.5">${this.riders.length} Synced</div>
+                            </div>
+                            <div class="p-2.5 rounded-xl border border-slate-100 bg-white">
+                                <div class="text-slate-400 font-semibold">Disputes Node</div>
+                                <div class="font-bold text-slate-800 font-mono mt-0.5">${this.disputes.length} Synced</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button onclick="app.triggerPushAllCloud()" class="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1.5 transition">
+                            <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
+                            <span>Push All to Cloud</span>
+                        </button>
+                        <button onclick="app.closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        modal.classList.remove("hidden");
+        if (window.lucide) lucide.createIcons();
+    }
+
+    triggerPushAllCloud() {
+        if (window.cloudSync) {
+            const success = window.cloudSync.pushAllLocalToCloud();
+            if (success) {
+                this.recordAudit("CLOUD_SYNC_PUSH_ALL", "FIREBASE_SYNC", "Pushed all current local orders, students, riders, and disputes to Firebase Cloud database campusapp-e8435.", "INFO");
+                this.showToast("All data successfully pushed to Firebase Cloud!", "success");
+                this.closeModal();
+            } else {
+                this.showToast("Cloud sync buffered. Will sync when connection is live.", "warning");
+            }
         }
     }
 

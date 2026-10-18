@@ -6,7 +6,7 @@ const ADMIN_ROLES = {
         id: "SUPER_ADMIN",
         name: "Superior Administrator",
         badgeColor: "bg-purple-600 text-white",
-        description: "Full unrestricted access to all operations, master security settings, and audits.",
+        description: "Full master access to all operations, app version policies, audits, and security controls.",
         defaultPin: "4656",
         allowedTabs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     },
@@ -14,23 +14,25 @@ const ADMIN_ROLES = {
         id: "OPERATIONS_OFFICER",
         name: "Operations Officer",
         badgeColor: "bg-emerald-500 text-white",
-        description: "Operational team access: Live Orders, Runners, Cab Pools, Meal Circles, and Rentals.",
+        description: "Operations workflow: Live Orders dispatch, Runner Fleet, Services moderation, and Lost & Found.",
         defaultPin: "1234",
-        allowedTabs: [0, 1, 3, 4, 6, 10]
+        allowedTabs: [1, 3, 4, 6, 10] // Orders, Riders, Services, Lost & Found, Feedback
     },
     FINANCIAL_AUDITOR: {
         id: "FINANCIAL_AUDITOR",
         name: "Financial Auditor",
         badgeColor: "bg-sky-500 text-white",
-        description: "Access limited to Financial Ledger, Wallet balances, Escrow, and Reports.",
-        allowedTabs: [0, 1, 2, 5, 8, 9]
+        description: "Financial oversight: Telemetry, Platform Fees, Escrow balances, Dispute refunds, and RFC CSV reports.",
+        defaultPin: "5678",
+        allowedTabs: [0, 1, 5, 8, 9] // Overview (Financial), Orders, Disputes (Refunds), Audit Trail, Reports
     },
     SAFETY_DISPUTE_OFFICER: {
         id: "SAFETY_DISPUTE_OFFICER",
         name: "Safety & Dispute Officer",
         badgeColor: "bg-rose-500 text-white",
-        description: "Access limited to Disputes, Lost & Found, Fraud Scanner, and Moderation.",
-        allowedTabs: [0, 2, 5, 6, 7, 8]
+        description: "Campus safety & discipline: Student warnings/blocks, Dispute arbitration, and AI Fraud Scanner.",
+        defaultPin: "1011",
+        allowedTabs: [2, 5, 6, 7] // Students, Disputes, Lost & Found, Fraud Scanner
     }
 };
 

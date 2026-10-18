@@ -151,6 +151,16 @@
 
                     <!-- Right: Actions & Role Switcher -->
                     <div class="flex items-center gap-2 sm:gap-3">
+                        <!-- Live Firebase Cloud Sync Status Badge -->
+                        <button 
+                            id="topbar-cloud-sync" 
+                            onclick="app.openCloudSyncModal()" 
+                            class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-medium hover:bg-emerald-900/60 transition shadow-sm" 
+                            title="Firebase Cloud Sync: Live Realtime Database">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="cloud-sync-status-text">Cloud Sync: Live (campusapp-e8435)</span>
+                        </button>
+
                         <!-- Detected Client IP Badge -->
                         <div class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-900/60 border border-purple-400/20 text-purple-200 text-xs font-mono font-medium" title="Active Client IP Detected">
                             <i data-lucide="globe" class="w-3.5 h-3.5 text-purple-300"></i>
@@ -243,8 +253,13 @@
     <!-- ======================================================== -->
     <div id="toast-container"></div>
 
+    <!-- Firebase Cloud Sync SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <!-- Core Application Scripts -->
     <script src="js/data.js"></script>
+    <script src="js/firebase-sync.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
