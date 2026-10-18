@@ -158,13 +158,61 @@ class CampusAdminApp {
 
         const toast = document.createElement("div");
         const bgColor = type === "error" ? "bg-rose-600" : type === "warning" ? "bg-amber-600" : "bg-emerald-600";
-        toast.className = `toast flex items-center gap-3 px-4 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl ${bgColor}`;
+        const icon = type === "error" ? "alert-circle" : type === "warning" ? "alert-triangle" : "check-circle";
+
+        toast.className = `toast flex items-center justify-between gap-3 px-4 py-3 rounded-2xl text-white text-xs font-semibold shadow-2xl ${bgColor} cursor-pointer`;
         toast.innerHTML = `
-            <span>${msg}</span>
-            <button onclick="this.parentElement.remove()" class="ml-2 text-white/80 hover:text-white">&times;</button>
+            <div class="flex items-center gap-2.5">
+                <i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i>
+                <span class="leading-snug">${msg}</span>
+            </div>
+            <button class="ml-2 text-white/80 hover:text-white shrink-0 text-base font-bold leading-none">&times;</button>
         `;
         container.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
+        if (window.lucide) lucide.createIcons();
+
+        let timer = null;
+        let isHovered = false;
+
+        const removeToast = () => {
+            if (toast.classList.contains("toast-fade-out")) return;
+            toast.classList.add("toast-fade-out");
+            setTimeout(() => {
+                if (toast.parentElement) toast.remove();
+            }, 200);
+        };
+
+        const startTimer = () => {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (!isHovered) removeToast();
+            }, 3000); // Disappear after 3 seconds
+        };
+
+        startTimer();
+
+        // Stays if cursor moves to popup, disappears as cursor leaves
+        toast.addEventListener("mouseenter", () => {
+            isHovered = true;
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+        });
+
+        toast.addEventListener("mouseleave", () => {
+            isHovered = false;
+            removeToast();
+        });
+
+        const closeBtn = toast.querySelector("button");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (timer) clearTimeout(timer);
+                removeToast();
+            });
+        }
     }
 
     startTimerLoop() {
@@ -428,9 +476,7 @@ class CampusAdminApp {
                         </div>
 
                         <p class="text-slate-600 leading-relaxed">
-                            If this was an unauthorized party attempting to breach your administrative console, <strong>no action is needed</strong>—the console remains completely sealed.
-                            <br/><br/>
-                            If this was you or an authorized colleague who was mistakenly locked out, you can click the rescue authorization button below to <strong>immediately clear the 24-hour lockout</strong> and retry your login.
+                            Click below to immediately clear the 24-hour lockout and restore console access.
                         </p>
 
                         <!-- Rescue Action Button -->
@@ -762,7 +808,7 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div>
                     <h2 class="text-xl font-extrabold text-slate-900">Operations Command Center</h2>
-                    <p class="text-xs text-slate-500 mt-1">Real-time campus telemetry, live services, and client parameter enforcement.</p>
+                    <p class="text-xs text-slate-500 mt-1">Real-time campus telemetry and service metrics.</p>
                 </div>
 
                 <!-- 4 KPI Metrics matching AdminOverviewAndHealthTab -->
@@ -869,8 +915,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Global Order Queue & Interventions</h2>
-                        <p class="text-xs text-slate-500 mt-1">Search and inspect customer requirements, item bills, and live assigned runner tracking.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Live Orders Queue</h2>
+                        <p class="text-xs text-slate-500 mt-1">Live order dispatch, delivery verification, and runner assignments.</p>
                     </div>
                     <span id="orders-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800 self-start sm:self-auto">
                         ${filtered.length} Orders Listed
@@ -1103,8 +1149,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Student 360 & Moderation Console</h2>
-                        <p class="text-xs text-slate-500 mt-1">Manage wallet balances, apply 12-hour temporary blocks, and dispatch official warnings.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Student Profiles & Moderation</h2>
+                        <p class="text-xs text-slate-500 mt-1">Student accounts, wallet balances, and disciplinary status.</p>
                     </div>
                     <span id="students-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800 self-start sm:self-auto">
                         ${filtered.length} Students Listed
@@ -1386,8 +1432,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Campus Rider Fleet & Verification</h2>
-                        <p class="text-xs text-slate-500 mt-1">Tap any rider card to inspect KYC credentials, deliveries, and performance stats.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Courier Fleet Management</h2>
+                        <p class="text-xs text-slate-500 mt-1">Runner verification, performance ratings, and active duty shifts.</p>
                     </div>
                     <span id="riders-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800 self-start sm:self-auto">
                         ${filtered.length} Riders Listed
@@ -1608,8 +1654,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Multi-Service Operations Hub</h2>
-                        <p class="text-xs text-slate-500 mt-1">Monitor Cab Pools, Meal Circles, and Equipment Rentals.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Multi-Service Hub</h2>
+                        <p class="text-xs text-slate-500 mt-1">Cab pools, meal circles, and equipment rentals.</p>
                     </div>
 
                     <!-- Segmented Filter Control -->
@@ -1763,8 +1809,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Dispute & Peer-to-Peer Arbitration Desk</h2>
-                        <p class="text-xs text-slate-500 mt-1">Review evidence, transcripts, and order history. Manual verification required before any refund.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Disputes & Arbitration Desk</h2>
+                        <p class="text-xs text-slate-500 mt-1">Review student claims, evidence, and issue refund payouts.</p>
                     </div>
 
                     <!-- Sub Tabs matching Android -->
@@ -1982,8 +2028,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Campus Lost & Found Moderation Hub</h2>
-                        <p class="text-xs text-slate-500 mt-1">Audit campus reports, log security desk deposits, and take action on violating student IDs.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Lost & Found Vault</h2>
+                        <p class="text-xs text-slate-500 mt-1">Campus item listings and security desk deposits.</p>
                     </div>
                     <span id="lostfound-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800 self-start sm:self-auto">
                         ${filtered.length} Listings Found
@@ -2189,8 +2235,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Advanced Fraud & Anomaly Intelligence Center</h2>
-                        <p class="text-xs text-slate-500 mt-1">Real-time risk scoring, decoupled malpractice targeting (Rider vs Student), and 12-hour automated lockout.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Fraud Scanner</h2>
+                        <p class="text-xs text-slate-500 mt-1">Automated anomaly detection for location spoofing and account abuse.</p>
                     </div>
                     <span id="fraud-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800 self-start sm:self-auto">
                         ${filtered.length} Anomalies Tracked
@@ -2362,8 +2408,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Immutable Admin Audit Trail</h2>
-                        <p class="text-xs text-slate-500 mt-1">Accountability log of all administrative actions, interventions, and financial resolutions.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Immutable Audit Trail</h2>
+                        <p class="text-xs text-slate-500 mt-1">Immutable log of all administrative actions and system events.</p>
                     </div>
 
                     <button onclick="app.downloadAuditCsv()" class="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-2 transition shadow-sm self-start sm:self-auto">
@@ -2473,8 +2519,8 @@ class CampusAdminApp {
         return `
             <div class="space-y-6">
                 <div>
-                    <h2 class="text-xl font-extrabold text-slate-900">Financial Settlement & Audit Reports</h2>
-                    <p class="text-xs text-slate-500 mt-1">Download RFC-compliant CSV files directly to device for Excel and Google Sheets.</p>
+                    <h2 class="text-xl font-extrabold text-slate-900">Financial Reports & Ledgers</h2>
+                    <p class="text-xs text-slate-500 mt-1">Financial ledgers and CSV export generation.</p>
                 </div>
 
                 <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
@@ -2656,8 +2702,8 @@ class CampusAdminApp {
             <div class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">User Suggestions & Feature Roadmap</h2>
-                        <p class="text-xs text-slate-500 mt-1">Accept user ideas to convert them into roadmap development tasks, or ignore to delete.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Feedback & Roadmap</h2>
+                        <p class="text-xs text-slate-500 mt-1">Student suggestions, bug reports, and product roadmap.</p>
                     </div>
 
                     <!-- Sub Tab Selector -->
@@ -2792,7 +2838,7 @@ class CampusAdminApp {
                         <button onclick="app.closeModal()" class="font-bold text-slate-400 text-xl">&times;</button>
                     </div>
 
-                    <p class="text-xs text-slate-500 mt-2">Role-Based Access Control limits visible tabs and privileged actions for operational security.</p>
+                    <p class="text-xs text-slate-500 mt-2">Select an administrative role to switch workspace.</p>
 
                     <div class="space-y-2.5 mt-4 text-xs">
                         ${Object.values(ADMIN_ROLES).map(role => `
@@ -2831,20 +2877,7 @@ class CampusAdminApp {
             return;
         }
 
-        // If currently Super Admin, Super Admin has master authority to switch to any role for previewing/auditing
-        if (this.activeRole === "SUPER_ADMIN") {
-            this.activeRole = roleId;
-            localStorage.setItem("admin_active_role", roleId);
-            const roleObj = ADMIN_ROLES[roleId] || ADMIN_ROLES.SUPER_ADMIN;
-            this.selectedTab = roleObj.allowedTabs[0] || 0;
-            this.recordAudit("ROLE_VIEW_SWITCH", roleId, `Superior Administrator switched active view to ${roleObj.name}.`, "INFO");
-            this.closeModal();
-            this.showToast(`Switched active view to ${roleObj.name}`);
-            this.render();
-            return;
-        }
-
-        // Any non-Super Admin must authenticate with the target role's designated PIN!
+        // Always ask and verify the target role's designated PIN on every role switch
         this.openRoleVerificationModal(roleId);
     }
 
@@ -2860,24 +2893,22 @@ class CampusAdminApp {
                             <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
                                 <i data-lucide="shield-check" class="w-4 h-4"></i>
                             </span>
-                            <h3 class="text-sm font-extrabold text-slate-900">Authenticate Role Switch</h3>
+                            <h3 class="text-sm font-extrabold text-slate-900">Verify Role PIN</h3>
                         </div>
-                        <button onclick="app.closeModal()" class="font-bold text-slate-400 text-xl">&times;</button>
+                        <button onclick="app.closeModal()" class="font-bold text-slate-400 text-xl hover:text-slate-600">&times;</button>
                     </div>
 
                     <div class="mt-3 p-3 rounded-2xl bg-slate-50 border border-slate-200">
-                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Console Role</div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Workspace</div>
                         <div class="text-sm font-black text-slate-900 mt-0.5">${targetRole.name}</div>
-                        <div class="text-[11px] text-slate-500 mt-1">${targetRole.description}</div>
                     </div>
 
-                    <p class="text-xs text-slate-500 mt-3 leading-relaxed">
-                        Enter the designated security PIN for <strong>${targetRole.name}</strong> to authenticate and switch access permissions.
+                    <p class="text-xs text-slate-500 mt-3">
+                        Enter the security PIN for <strong>${targetRole.name}</strong> to switch:
                     </p>
 
-                    <form onsubmit="app.verifyRolePinAndSwitch(event, '${targetRoleId}')" class="space-y-4 mt-4 text-xs">
+                    <form onsubmit="app.verifyRolePinAndSwitch(event, '${targetRoleId}')" class="space-y-4 mt-3 text-xs">
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Enter ${targetRole.name} PIN:</label>
                             <input 
                                 type="password" 
                                 maxlength="6" 
@@ -2890,8 +2921,8 @@ class CampusAdminApp {
                             <p id="role-pin-error" class="text-rose-600 font-bold mt-1.5 hidden"></p>
                         </div>
                         <div class="flex justify-end gap-2 pt-1">
-                            <button type="button" onclick="app.closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold">Cancel</button>
-                            <button type="submit" class="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold">Authenticate & Switch</button>
+                            <button type="button" onclick="app.closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50">Cancel</button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold transition shadow-sm">Verify & Unlock</button>
                         </div>
                     </form>
                 </div>
@@ -2911,17 +2942,45 @@ class CampusAdminApp {
         const correctPin = this.getRolePin(targetRoleId);
 
         if (entered === correctPin) {
+            this.roleSwitchFailedAttempts = 0;
+            this.failedAttempts = 0;
+            localStorage.setItem("admin_failed_attempts", "0");
             this.activeRole = targetRoleId;
             localStorage.setItem("admin_active_role", targetRoleId);
             this.selectedTab = targetRole.allowedTabs[0] || 0;
-            this.recordAudit("ROLE_AUTHENTICATED_SWITCH", targetRoleId, `Switched active role to ${targetRole.name} upon successful PIN authentication from IP: ${this.clientIp}.`, "INFO");
+            this.recordAudit("ROLE_SWITCH_SUCCESS", targetRoleId, `Switched active role to ${targetRole.name} upon successful PIN authentication.`, "INFO");
             this.closeModal();
-            this.showToast(`Authenticated: Switched to ${targetRole.name}`, "success");
+            this.showToast(`Switched active role to ${targetRole.name}`);
             this.render();
         } else {
-            this.recordAudit("UNAUTHORIZED_ROLE_SWITCH", targetRoleId, `Unauthorized attempt to switch to ${targetRole.name} from IP: ${this.clientIp}. Incorrect PIN.`, "CRITICAL");
-            err.textContent = `Incorrect PIN for ${targetRole.name}. Access denied.`;
-            err.classList.remove("hidden");
+            this.roleSwitchFailedAttempts = (this.roleSwitchFailedAttempts || 0) + 1;
+            this.failedAttempts = this.roleSwitchFailedAttempts;
+            localStorage.setItem("admin_failed_attempts", this.failedAttempts.toString());
+
+            if (this.roleSwitchFailedAttempts >= 3) {
+                // 3 Wrong PIN attempts: Lock console for 24 hours & trigger rescue email procedure!
+                this.lockoutUntil = Date.now() + (24 * 60 * 60 * 1000); // 24 Hours
+                localStorage.setItem("admin_lockout_until", this.lockoutUntil.toString());
+                this.isUnlocked = false;
+                sessionStorage.setItem("admin_is_unlocked", "false");
+                this.roleSwitchFailedAttempts = 0;
+
+                this.recordAudit("SECURITY_LOCKOUT_24H", targetRoleId, `Console locked for 24 hours after 3 failed PIN attempts during role switch to ${targetRole.name}. Emergency warning alert dispatched to ${this.alertEmail}.`, "CRITICAL");
+                this.closeModal();
+                this.render();
+                this.openEmergencyEmailModal();
+                this.showToast("3 failed attempts. Console locked for 24 hours.", "error");
+            } else {
+                const remaining = 3 - this.roleSwitchFailedAttempts;
+                this.recordAudit("AUTH_FAILED_ATTEMPT", targetRoleId, `Incorrect PIN for ${targetRole.name} (${this.roleSwitchFailedAttempts}/3).`, "WARNING");
+                err.textContent = `Incorrect PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before 24-hour lockout.`;
+                err.classList.remove("hidden");
+                const inp = document.getElementById("role-pin-input");
+                if (inp) {
+                    inp.value = "";
+                    inp.focus();
+                }
+            }
         }
     }
 
@@ -2961,14 +3020,9 @@ class CampusAdminApp {
                             </div>
                         </div>
 
-                        <div class="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-100 text-purple-900 space-y-2">
-                            <div class="font-bold text-xs flex items-center gap-1.5">
-                                <i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-purple-700"></i>
-                                <span>Bi-Directional Android & Web Synchronization</span>
-                            </div>
-                            <p class="text-[11px] text-purple-800/80 leading-relaxed">
-                                Any updates made in <strong>CampusApp</strong> (e.g. newly placed student orders, rider status updates, dispute tickets) are pushed directly to Firebase Realtime Database and instantaneously appear here in <strong>CampusAdminWeb</strong> without refreshing.
-                            </p>
+                        <div class="p-2.5 rounded-xl bg-purple-50 border border-purple-100 text-purple-900 flex items-center gap-2 text-xs font-semibold">
+                            <i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-purple-700 shrink-0"></i>
+                            <span>Bi-directional real-time sync with CampusApp (Android)</span>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2 text-[11px]">

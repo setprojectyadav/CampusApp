@@ -6,7 +6,7 @@ const ADMIN_ROLES = {
         id: "SUPER_ADMIN",
         name: "Superior Administrator",
         badgeColor: "bg-purple-600 text-white",
-        description: "Full master access to all operations, app version policies, audits, and security controls.",
+        description: "Full master access to all operations, policies, and controls.",
         defaultPin: "4656",
         allowedTabs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     },
@@ -14,7 +14,7 @@ const ADMIN_ROLES = {
         id: "OPERATIONS_OFFICER",
         name: "Operations Officer",
         badgeColor: "bg-emerald-500 text-white",
-        description: "Operations workflow: Live Orders dispatch, Runner Fleet, Services moderation, and Lost & Found.",
+        description: "Live order dispatch, rider fleet, and services.",
         defaultPin: "1234",
         allowedTabs: [1, 3, 4, 6, 10] // Orders, Riders, Services, Lost & Found, Feedback
     },
@@ -22,7 +22,7 @@ const ADMIN_ROLES = {
         id: "FINANCIAL_AUDITOR",
         name: "Financial Auditor",
         badgeColor: "bg-sky-500 text-white",
-        description: "Financial oversight: Telemetry, Platform Fees, Escrow balances, Dispute refunds, and RFC CSV reports.",
+        description: "Financial oversight, escrow balances, and reports.",
         defaultPin: "5678",
         allowedTabs: [0, 1, 5, 8, 9] // Overview (Financial), Orders, Disputes (Refunds), Audit Trail, Reports
     },
@@ -30,7 +30,7 @@ const ADMIN_ROLES = {
         id: "SAFETY_DISPUTE_OFFICER",
         name: "Safety & Dispute Officer",
         badgeColor: "bg-rose-500 text-white",
-        description: "Campus safety & discipline: Student warnings/blocks, Dispute arbitration, and AI Fraud Scanner.",
+        description: "Dispute resolution, safety conduct, and fraud scanner.",
         defaultPin: "1011",
         allowedTabs: [2, 5, 6, 7] // Students, Disputes, Lost & Found, Fraud Scanner
     }

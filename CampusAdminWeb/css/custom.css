@@ -75,26 +75,42 @@ code, pre, .font-mono {
     100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Toast Notifications */
+/* Stationary Header & Navigation Taskbar */
+header {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+}
+
+/* Toast Notifications - Top Right Corner */
 #toast-container {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
+    top: 20px;
+    right: 20px;
+    z-index: 99999;
     display: flex;
     flex-direction: column;
     gap: 10px;
     pointer-events: none;
+    max-width: 400px;
+    width: calc(100% - 40px);
 }
 
 .toast {
     pointer-events: auto;
-    animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    animation: toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.toast-fade-out {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
 }
 
 @keyframes toast-in {
-    0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+    0% { opacity: 0; transform: translateY(-15px) scale(0.95); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
