@@ -113,11 +113,11 @@
                 <span class="flex items-center gap-1.5 text-purple-700 font-semibold">
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i> Role Security Gateway
                 </span>
-                <span class="flex items-center gap-1 text-slate-500">
-                    <i data-lucide="globe" class="w-3.5 h-3.5 text-slate-400"></i>
+                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-mono text-xs shadow-2xs">
+                    <i data-lucide="globe" class="w-3.5 h-3.5 text-purple-600"></i>
                     <span>IP:</span>
-                    <strong id="client-ip-display" class="font-mono text-slate-700">Detecting...</strong>
-                </span>
+                    <strong id="client-ip-display" class="font-bold">Detecting...</strong>
+                </div>
             </div>
         </div>
     </div>
@@ -150,62 +150,65 @@
                     </div>
 
                     <!-- Right: Actions & Role Switcher -->
-                    <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="flex items-center gap-1.5 sm:gap-2">
                         <!-- Live Firebase Cloud Sync Status Badge -->
                         <button 
                             id="topbar-cloud-sync" 
                             onclick="app.openCloudSyncModal()" 
-                            class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-medium hover:bg-emerald-900/60 transition shadow-sm" 
-                            title="Firebase Cloud Sync: Live Realtime Database">
+                            class="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-medium hover:bg-emerald-900/60 transition shadow-xs shrink-0 whitespace-nowrap" 
+                            title="Realtime Cloud Sync: Live Bridge (ntfy.sh)">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                             <span id="cloud-sync-status-text">Cloud Sync: Live</span>
                         </button>
 
-                        <!-- Detected Client IP Badge -->
-                        <div class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-900/60 border border-purple-400/20 text-purple-200 text-xs font-mono font-medium" title="Active Client IP Detected">
-                            <i data-lucide="globe" class="w-3.5 h-3.5 text-purple-300"></i>
-                            <span id="topbar-ip-display">Detecting IP...</span>
+                        <!-- Detected Client IP Badge (Inside Textbox) -->
+                        <div id="topbar-ip-box" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl bg-purple-900/60 border border-purple-400/30 text-purple-200 text-xs font-mono font-medium shrink-0 whitespace-nowrap shadow-xs" title="Active Client IP Detected">
+                            <i data-lucide="globe" class="w-3.5 h-3.5 text-purple-300 shrink-0"></i>
+                            <span class="inline-flex items-center">IP:</span>
+                            <strong id="topbar-ip-display" class="inline-flex items-center text-white font-bold tracking-tight">Detecting IP...</strong>
                         </div>
 
-                        <!-- Role Selector -->
+                        <!-- Role Selector (Fitted to text size) -->
                         <button 
                             id="btn-switch-role" 
-                            class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-bold transition-all" 
+                            class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-bold transition-all shrink-0 whitespace-nowrap" 
                             title="Switch Administrative Role">
-                            <i data-lucide="shield" class="w-3.5 h-3.5 text-purple-300"></i>
-                            <span id="topbar-role-label">Role: Superior Administrator &gt;</span>
+                            <i data-lucide="shield" class="w-3.5 h-3.5 text-purple-300 shrink-0"></i>
+                            <span id="topbar-role-label">Superior Admin</span>
+                            <i data-lucide="chevron-down" class="w-3 h-3 text-purple-300/80 shrink-0"></i>
                         </button>
 
-                        <!-- Refresh State -->
+                        <!-- Small Refresh Button (Icon-only, no "Refresh Dashboard" text) -->
                         <button 
-                            id="btn-refresh-state" 
-                            class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all" 
-                            title="Sync Telemetry from Storage">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            id="btn-refresh-page" 
+                            onclick="app.refreshWholePage()" 
+                            class="w-8 h-8 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white inline-flex items-center justify-center shadow-md shadow-purple-950/40 border border-purple-400/40 transition-all transform active:scale-95 cursor-pointer shrink-0" 
+                            title="Refresh Console & Reload State">
+                            <i data-lucide="rotate-cw" id="topbar-refresh-icon" class="w-3.5 h-3.5"></i>
                         </button>
 
                         <!-- Change PIN -->
                         <button 
                             id="btn-change-pin" 
-                            class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all" 
+                            class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white inline-flex items-center justify-center transition-all shrink-0 border border-white/10" 
                             title="Change Security PIN">
-                            <i data-lucide="key" class="w-4 h-4"></i>
+                            <i data-lucide="key" class="w-3.5 h-3.5"></i>
                         </button>
 
                         <!-- Reset DB -->
                         <button 
                             id="btn-reset-db" 
-                            class="p-2 rounded-xl bg-white/10 hover:bg-rose-500/30 text-rose-300 hover:text-white transition-all" 
+                            class="w-8 h-8 rounded-xl bg-white/10 hover:bg-rose-500/30 text-rose-300 hover:text-white inline-flex items-center justify-center transition-all shrink-0 border border-white/10" 
                             title="Reset Database to Seed Defaults">
-                            <i data-lucide="database" class="w-4 h-4"></i>
+                            <i data-lucide="database" class="w-3.5 h-3.5"></i>
                         </button>
 
                         <!-- Lock Console -->
                         <button 
                             id="btn-lock-console" 
-                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-extrabold shadow-md transition-all" 
+                            class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-bold shadow-xs transition-all shrink-0 whitespace-nowrap" 
                             title="Lock Master Console Session">
-                            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                            <i data-lucide="lock" class="w-3.5 h-3.5 shrink-0"></i>
                             <span class="hidden sm:inline">Lock</span>
                         </button>
                     </div>
@@ -213,7 +216,7 @@
             </div>
             
             <!-- Horizontal Tabs Navigation -->
-            <div class="bg-[#1f0a42] border-t border-purple-900/80 overflow-x-auto scrollbar-none">
+            <div id="nav-tabs-wrapper" class="bg-[#1f0a42] border-t border-purple-900/80 overflow-x-auto custom-scrollbar-dark">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
                     <div id="nav-tabs-container" class="flex items-center gap-1.5 min-w-max">
                         <!-- Rendered dynamically by app.js based on role permissions -->
@@ -232,7 +235,6 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div class="flex items-center gap-2 font-medium">
                     <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <span>Campus Operations Console &bull; Live Realtime Synchronization</span>
                 </div>
                 <div class="text-[11px] text-slate-400">
                     Restricted Administrative Workspace

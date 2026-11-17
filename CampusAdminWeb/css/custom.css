@@ -20,23 +20,153 @@ code, pre, .font-mono {
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* Custom Scrollbar */
+/* ======================================================== */
+/* UNIVERSAL SCROLLBAR SYSTEM (HORIZONTAL & VERTICAL)      */
+/* Appears dynamically "as per need" with smooth scrolling */
+/* ======================================================== */
+
+html {
+    scroll-behavior: smooth;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+/* Modern standard CSS scrollbar properties (Firefox & standards) */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+/* Global WebKit Scrollbars (Chrome, Safari, Edge, Opera) */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px; /* Vertical scrollbar width */
+    height: 8px; /* Horizontal scrollbar height */
 }
 
 ::-webkit-scrollbar-track {
-    background: #F1F5F9;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #CBD5E1;
+    background: #f1f5f9;
     border-radius: 9999px;
 }
 
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+    border: 1.5px solid #f1f5f9;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
 ::-webkit-scrollbar-thumb:hover {
-    background: #94A3B8;
+    background: #94a3b8;
+}
+
+::-webkit-scrollbar-thumb:active {
+    background: #7e22ce; /* Vibrant purple when actively dragging */
+    border-color: #e2e8f0;
+}
+
+::-webkit-scrollbar-corner {
+    background: #f1f5f9;
+}
+
+/* Specialized Dark Scrollbar (For Top Navigation Taskbar & Dark Panels) */
+.custom-scrollbar-dark,
+header div[class*="overflow-x-auto"],
+#nav-tabs-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: #7e22ce #160530;
+    overflow-x: auto !important;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.custom-scrollbar-dark::-webkit-scrollbar,
+header div[class*="overflow-x-auto"]::-webkit-scrollbar,
+#nav-tabs-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.custom-scrollbar-dark::-webkit-scrollbar-track,
+header div[class*="overflow-x-auto"]::-webkit-scrollbar-track,
+#nav-tabs-wrapper::-webkit-scrollbar-track {
+    background: #160530;
+    border-radius: 9999px;
+}
+
+.custom-scrollbar-dark::-webkit-scrollbar-thumb,
+header div[class*="overflow-x-auto"]::-webkit-scrollbar-thumb,
+#nav-tabs-wrapper::-webkit-scrollbar-thumb {
+    background: #7e22ce;
+    border-radius: 9999px;
+    border: 1.5px solid #160530;
+}
+
+.custom-scrollbar-dark::-webkit-scrollbar-thumb:hover,
+header div[class*="overflow-x-auto"]::-webkit-scrollbar-thumb:hover,
+#nav-tabs-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #9333ea;
+}
+
+.custom-scrollbar-dark::-webkit-scrollbar-thumb:active,
+header div[class*="overflow-x-auto"]::-webkit-scrollbar-thumb:active,
+#nav-tabs-wrapper::-webkit-scrollbar-thumb:active {
+    background: #a855f7;
+}
+
+.custom-scrollbar-dark::-webkit-scrollbar-corner,
+header div[class*="overflow-x-auto"]::-webkit-scrollbar-corner,
+#nav-tabs-wrapper::-webkit-scrollbar-corner {
+    background: #160530;
+}
+
+/* Light & Modal Scrollbar Utility (For Tables, Modals, Dossiers & Streams) */
+.custom-scrollbar-light,
+.scrollbar-thin,
+.overflow-x-auto,
+.overflow-y-auto {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.custom-scrollbar-light::-webkit-scrollbar,
+.scrollbar-thin::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.custom-scrollbar-light::-webkit-scrollbar-track,
+.scrollbar-thin::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 9999px;
+}
+
+.custom-scrollbar-light::-webkit-scrollbar-thumb,
+.scrollbar-thin::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+    border: 1.5px solid #f1f5f9;
+}
+
+.custom-scrollbar-light::-webkit-scrollbar-thumb:hover,
+.scrollbar-thin::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.custom-scrollbar-light::-webkit-scrollbar-thumb:active,
+.scrollbar-thin::-webkit-scrollbar-thumb:active,
+.overflow-x-auto::-webkit-scrollbar-thumb:active,
+.overflow-y-auto::-webkit-scrollbar-thumb:active {
+    background: #7e22ce;
 }
 
 /* Card Hover Elevation */
@@ -91,6 +221,53 @@ header * {
     backdrop-filter: none !important;
 }
 
+/* Top Bar Action Buttons - Professional Uniform Height & Proportional Sizing */
+#btn-refresh-page,
+#btn-change-pin,
+#btn-reset-db {
+    box-sizing: border-box !important;
+    height: 32px !important;
+    width: 32px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#btn-switch-role,
+#btn-lock-console,
+#topbar-cloud-sync,
+#topbar-ip-box {
+    box-sizing: border-box !important;
+    height: 32px !important;
+    line-height: normal !important;
+}
+
+#topbar-ip-box {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    padding: 0 10px !important;
+    overflow: visible !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+#topbar-ip-box span,
+#topbar-ip-box strong,
+#topbar-ip-display {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 header div[class*="overflow-x-auto"],
 #nav-tabs-container {
     background-color: #1f0a42 !important; /* 100% Solid Opaque */
@@ -113,6 +290,32 @@ header div[class*="overflow-x-auto"],
     box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.25) !important;
     border-bottom: 2.5px solid #7e22ce !important;
     transform: none !important; /* Strictly no scaling to maintain constant box size */
+}
+
+/* Active Nav Tab Icon Highlighting & Bolding (Solid Purple Squircle + 2.8px Bold Icon) */
+.active-nav-tab .nav-tab-icon-wrap {
+    background-color: #6b21a8 !important; /* purple-700 */
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(107, 33, 168, 0.4) !important;
+}
+
+.active-nav-tab svg,
+.active-nav-tab svg *,
+button.active-nav-tab svg,
+button.active-nav-tab svg * {
+    stroke-width: 2.8px !important;
+    stroke: #ffffff !important;
+    color: #ffffff !important;
+}
+
+.nav-tab-btn:not(.active-nav-tab) .nav-tab-icon-wrap {
+    color: #d8b4fe !important; /* purple-300 */
+}
+
+.nav-tab-btn:not(.active-nav-tab) svg,
+.nav-tab-btn:not(.active-nav-tab) svg * {
+    stroke-width: 1.8px !important;
+    stroke: currentColor !important;
 }
 
 /* Toast Notifications - Top Right Corner */

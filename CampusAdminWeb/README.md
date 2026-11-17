@@ -15,7 +15,7 @@ Adapted with 100% feature parity from the Android `CampusAdminApp`.
 - **Student & Fleet Management**: Profile review, KYC verification, one-click block/unblock, warning issuance, and student rating history.
 - **Campus Services Moderation**: Moderate cab pooling, group meals, and campus product rentals with deposit and return validations.
 - **Dispute Resolution Center**: Interactive evidence viewer, chat logs, refund arbitration, and resolution audit notes.
-- **Lost & Found Vault**: Claim verification, security hand-off token generation, item return confirmation.
+- **Lost & Found Vault**: Visual Ad & photo inspection preview modal, media verification checklist, claim arbitration, and takedown moderation with student penalties.
 - **AI Fraud Scanner**: Suspicious pattern alerts, rapid multi-order anomaly detection, account flag toggles.
 - **Immutable Audit Trail & Telemetry**: Full historical logs with severity filters, exportable compliance trail.
 - **Reports & Feedback**: Exportable operational statistics, revenue breakdowns, and user feedback ratings.
