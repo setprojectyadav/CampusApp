@@ -232,28 +232,32 @@ class CampusFirebaseSync {
             this.refreshAdminViews();
         }
 
-        // 2. Student Profile payload
-        else if (payload.type === "STUDENT" || (payload.email && payload.rollNo && !payload.itemType && payload.isOnline === undefined)) {
-            const student = payload;
-            const idx = window.app.students.findIndex(s => s.email === student.email || s.rollNo === student.rollNo);
-            if (idx >= 0) {
-                window.app.students[idx] = { ...window.app.students[idx], ...student };
+        // 2. Student Profile or User Registration payload
+        else if (payload.type === "STUDENT" || payload.type === "USER_SIGNUP" || payload.type === "ACCOUNT_CREATED" || payload.type === "NEW_USER" || (payload.email && payload.rollNo && !payload.itemType && payload.isOnline === undefined)) {
+            if (window.app && typeof window.app.registerOrUpdateUser === "function") {
+                window.app.registerOrUpdateUser(payload, isBackground);
             } else {
-                window.app.students.unshift(student);
-                if (!isBackground) this.playOrderChime();
-                if (!isBackground && window.app.isUnlocked) {
-                    window.app.showToast(`👤 Student Profile Synced: ${student.name || student.email}`, "success");
+                const student = payload;
+                const idx = window.app.students.findIndex(s => s.email === student.email || s.rollNo === student.rollNo);
+                if (idx >= 0) {
+                    window.app.students[idx] = { ...window.app.students[idx], ...student };
+                } else {
+                    window.app.students.unshift(student);
+                    if (!isBackground) this.playOrderChime();
+                    if (!isBackground && window.app.isUnlocked) {
+                        window.app.showToast(`👤 Student Profile Synced: ${student.name || student.email}`, "success");
+                    }
                 }
+                window.app.save("campus_students_list", window.app.students);
             }
-            window.app.save("campus_students_list", window.app.students);
             if (typeof window.app.recordCustomerActivity === "function") {
                 window.app.recordCustomerActivity({
-                    userEmail: student.email,
-                    userName: student.name || student.email.split("@")[0],
+                    userEmail: payload.email,
+                    userName: payload.name || payload.email?.split("@")[0] || "Student",
                     section: "PROFILE",
                     action: "PROFILE_SYNC",
-                    title: "Student Profile Synced: " + (student.name || student.email),
-                    details: `Roll No: ${student.rollNo || 'N/A'} | Hostel: ${student.hostel || 'Hostel'} | Stream: ${student.stream || 'CS'} | Wallet: Rs. ${student.walletBalance || 0}`,
+                    title: "Student Profile Synced: " + (payload.name || payload.email),
+                    details: `Roll No: ${payload.rollNo || 'N/A'} | Hostel: ${payload.hostel || 'Hostel'} | Stream: ${payload.stream || 'CS'} | Wallet: Rs. ${payload.walletBalance || 0}`,
                     status: "ACTIVE"
                 });
             }
@@ -532,7 +536,6 @@ class CampusFirebaseSync {
             }
             this.refreshAdminViews();
         }
-    }
     }
 
     initFirebase() {
@@ -1024,6 +1027,65 @@ class CampusFirebaseSync {
             try {
                 const idKey = userEmail.replace(/[.#$[\]]/g, "_");
                 this.db.ref(`session_resets/${idKey}`).set(payload);
+            } catch (e) {}
+        }
+    }
+
+    // Outbound Global Maintenance Broadcast (with In-Flight Transaction Grace Policy)
+    syncMaintenanceMode({ globalMaintenance, allowActiveTransactions = true, message, sectionMaintenance }) {
+        const payload = {
+            type: "MAINTENANCE_MODE_UPDATE",
+            source: "ADMIN_WEB",
+            globalMaintenance: !!globalMaintenance,
+            maintenanceMode: !!globalMaintenance,
+            allowActiveTransactions: allowActiveTransactions !== false,
+            message: message || (globalMaintenance ? "CampusApp is currently in scheduled maintenance. Active orders, rides, or transactions may complete, but all other features are temporarily halted." : "CampusApp systems are fully operational."),
+            sectionMaintenance: sectionMaintenance || (window.app?.systemConfig?.sectionMaintenance || {}),
+            timestamp: new Date().toLocaleTimeString(),
+            isoTimestamp: new Date().toISOString()
+        };
+        try {
+            fetch(this.ntfyUrl, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(payload)
+            }).catch(() => {});
+        } catch (e) {}
+
+        if (this.db) {
+            try {
+                this.db.ref("system_config/maintenance").set(payload);
+                this.db.ref("system_config/maintenance_mode").set(!!globalMaintenance);
+            } catch (e) {}
+        }
+    }
+
+    // Outbound Section-Specific Maintenance Broadcast
+    syncSectionMaintenance({ section, enabled, sectionName, message, allowActiveTransactions = true }) {
+        if (!section) return;
+        const payload = {
+            type: "SECTION_MAINTENANCE_UPDATE",
+            source: "ADMIN_WEB",
+            section: section,
+            enabled: !!enabled,
+            sectionName: sectionName || section,
+            allowActiveTransactions: allowActiveTransactions !== false,
+            message: message || (enabled ? `${sectionName || section} is temporarily paused for scheduled maintenance.` : `${sectionName || section} is back online and operational.`),
+            globalMaintenance: !!(window.app?.systemConfig?.maintenanceMode),
+            timestamp: new Date().toLocaleTimeString(),
+            isoTimestamp: new Date().toISOString()
+        };
+        try {
+            fetch(this.ntfyUrl, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(payload)
+            }).catch(() => {});
+        } catch (e) {}
+
+        if (this.db) {
+            try {
+                this.db.ref(`system_config/sections/${section}`).set(payload);
             } catch (e) {}
         }
     }

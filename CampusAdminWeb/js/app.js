@@ -151,6 +151,44 @@ class CampusAdminApp {
         this.systemConfig = getOrSet("campus_system_config", DEFAULT_SYSTEM_CONFIG);
         this.customerActivities = getOrSet("campus_customer_activities", typeof SEED_CUSTOMER_ACTIVITIES !== "undefined" ? SEED_CUSTOMER_ACTIVITIES : []);
 
+        // Ensure systemConfig has maintenance mode, section maintenance matrix, and transaction grace policy
+        if (!this.systemConfig.sectionMaintenance || typeof this.systemConfig.sectionMaintenance !== "object") {
+            this.systemConfig.sectionMaintenance = JSON.parse(JSON.stringify(DEFAULT_SYSTEM_CONFIG.sectionMaintenance));
+            this.save("campus_system_config", this.systemConfig);
+        }
+        if (this.systemConfig.allowActiveTransactions === undefined) {
+            this.systemConfig.allowActiveTransactions = true;
+            this.save("campus_system_config", this.systemConfig);
+        }
+
+        // Ensure students list has all seed registered users and registration timestamps
+        if (Array.isArray(this.students) && typeof SEED_STUDENTS !== "undefined") {
+            let updatedStudents = false;
+            SEED_STUDENTS.forEach(seedSt => {
+                const existing = this.students.find(s => s.email === seedSt.email || s.rollNo === seedSt.rollNo);
+                if (!existing) {
+                    this.students.push(JSON.parse(JSON.stringify(seedSt)));
+                    updatedStudents = true;
+                } else {
+                    if (!existing.registeredAt && seedSt.registeredAt) {
+                        existing.registeredAt = seedSt.registeredAt;
+                        existing.registeredAtIso = seedSt.registeredAtIso;
+                        updatedStudents = true;
+                    }
+                }
+            });
+            this.students.forEach((st, idx) => {
+                if (!st.registeredAt) {
+                    st.registeredAt = "15 Oct 2026, 10:00 AM";
+                    st.registeredAtIso = "2026-10-15T04:30:00.000Z";
+                    updatedStudents = true;
+                }
+            });
+            if (updatedStudents) {
+                this.save("campus_students_list", this.students);
+            }
+        }
+
         // Synchronize and initialize persistent chat transcripts across all sections
         const syncCollectionChatLogs = (collection, seedCollection, storageKey) => {
             if (!Array.isArray(collection) || !Array.isArray(seedCollection)) return;
@@ -1456,7 +1494,6 @@ class CampusAdminApp {
             this.showToast("Telemetry synced with storage!");
             this.render();
         });
-        document.getElementById("btn-reset-db")?.addEventListener("click", () => this.resetToDefaults());
     }
 
     isAccountLocked() {
@@ -1745,6 +1782,7 @@ class CampusAdminApp {
 
         this.renderTopBar();
         this.renderNavigationTabs();
+        this.renderGlobalMaintenanceBanner();
         this.renderCurrentTab();
 
         if (window.lucide) lucide.createIcons();
@@ -1771,10 +1809,6 @@ class CampusAdminApp {
         const btnChangePin = document.getElementById("btn-change-pin");
         if (btnChangePin) {
             btnChangePin.style.display = this.activeRole === "SUPER_ADMIN" ? "inline-flex" : "none";
-        }
-        const btnResetDb = document.getElementById("btn-reset-db");
-        if (btnResetDb) {
-            btnResetDb.style.display = this.activeRole === "SUPER_ADMIN" ? "inline-flex" : "none";
         }
     }
 
@@ -2163,6 +2197,9 @@ class CampusAdminApp {
                     </div>
                 </div>
 
+                <!-- System Maintenance & Service Outage Control Center -->
+                ${this.renderMaintenanceControlCenter()}
+
                 <!-- Live Customer & Student Activities Feed (All Modules) -->
                 <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -2261,9 +2298,27 @@ class CampusAdminApp {
 
     renderOrdersTab() {
         const filtered = this.getFilteredOrders();
+        const isOrdersMaint = !!(this.systemConfig.sectionMaintenance?.orders?.enabled);
 
         return `
             <div class="space-y-6">
+                ${isOrdersMaint ? `
+                    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-300 text-amber-900 flex items-center justify-between gap-3 text-xs shadow-xs">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="font-extrabold text-amber-950">Section Maintenance Active: Campus Mart & Food Orders</div>
+                                <div class="text-[11px] text-amber-800">New customer orders are paused for mobile users. In-flight orders can complete. Other campus sections remain fully functional.</div>
+                            </div>
+                        </div>
+                        <button onclick="app.toggleSectionMaintenance('orders', false)" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 transition shadow-2xs">
+                            Resume Orders
+                        </button>
+                    </div>
+                ` : ''}
+
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h2 class="text-xl font-extrabold text-slate-900">Live Orders Queue</h2>
@@ -2529,6 +2584,7 @@ class CampusAdminApp {
 
     renderStudentsTab() {
         const filtered = this.getFilteredStudents();
+        const allUsers = this.getAllRegisteredUsers();
 
         return `
             <div class="space-y-6">
@@ -2539,6 +2595,41 @@ class CampusAdminApp {
                     <span id="students-count-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-800 self-start sm:self-auto">
                         ${filtered.length} Students Listed
                     </span>
+                </div>
+
+                <!-- Registered Users Master Sheet Action Banner -->
+                <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-purple-950 rounded-2xl p-4 sm:p-5 text-white shadow-md border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-start sm:items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0 text-emerald-300 shadow-inner">
+                            <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h3 class="text-base font-extrabold tracking-tight">Registered Users Master Sheet</h3>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    Auto-Updating Live
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-300 mt-1 max-w-xl">
+                                Complete directory of all users that have created an account in CampusApp by filling up their details. Automatically ingests new users as they join the app.
+                            </p>
+                            <div class="text-[11px] text-emerald-300/80 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <span>📁 <strong>${allUsers.length}</strong> Total Registered Accounts</span>
+                                <span>•</span>
+                                <span>⏱️ Export captures full list up to current second (${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })} IST)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2.5 self-start md:self-auto shrink-0">
+                        <button 
+                            onclick="app.downloadUsersCsv()" 
+                            class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-950/40 inline-flex items-center gap-2 transition transform active:scale-95 cursor-pointer border border-emerald-400/40"
+                            title="Download complete user accounts sheet as CSV up to this exact date and time">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Download Users Sheet (CSV)</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Directory Filter Bar -->
@@ -3338,9 +3429,35 @@ class CampusAdminApp {
 
     renderServicesTab() {
         const data = this.getFilteredServices();
+        const secM = this.systemConfig.sectionMaintenance || {};
+        const pausedServices = [];
+        if (secM.cabs?.enabled) pausedServices.push({ key: 'cabs', name: 'Cab Pooling' });
+        if (secM.meals?.enabled) pausedServices.push({ key: 'meals', name: 'Meal Circles' });
+        if (secM.rentals?.enabled) pausedServices.push({ key: 'rentals', name: 'Item Rentals' });
 
         return `
             <div class="space-y-6">
+                ${pausedServices.length > 0 ? `
+                    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-300 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="font-extrabold text-amber-950">Section Maintenance Active: ${pausedServices.map(p => p.name).join(", ")}</div>
+                                <div class="text-[11px] text-amber-800">New bookings paused for these services on mobile apps. Other campus sections remain fully functional.</div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            ${pausedServices.map(p => `
+                                <button onclick="app.toggleSectionMaintenance('${p.key}', false)" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-2xs">
+                                    Resume ${p.name}
+                                </button>
+                            `).join("")}
+                        </div>
+                    </div>
+                ` : ''}
+
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h2 class="text-xl font-extrabold text-slate-900">Multi-Service Hub</h2>
@@ -4178,9 +4295,27 @@ class CampusAdminApp {
 
     renderLostFoundTab() {
         const filtered = this.getFilteredLostFound();
+        const isLfMaint = !!(this.systemConfig.sectionMaintenance?.lostFound?.enabled);
 
         return `
             <div class="space-y-6">
+                ${isLfMaint ? `
+                    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-300 text-amber-900 flex items-center justify-between gap-3 text-xs shadow-xs">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="font-extrabold text-amber-950">Section Maintenance Active: Lost & Found Portal</div>
+                                <div class="text-[11px] text-amber-800">New lost & found submissions are paused for mobile users. Other campus sections remain fully functional.</div>
+                            </div>
+                        </div>
+                        <button onclick="app.toggleSectionMaintenance('lostFound', false)" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 transition shadow-2xs">
+                            Resume Lost & Found
+                        </button>
+                    </div>
+                ` : ''}
+
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h2 class="text-xl font-extrabold text-slate-900">Lost & Found Vault</h2>
@@ -5470,12 +5605,20 @@ class CampusAdminApp {
                         </div>
                     </div>
 
-                    <div class="pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <button onclick="app.downloadOrdersCsv('reports')" class="p-4 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center justify-center gap-3 transition shadow-sm">
                             <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
                             <div class="text-left">
                                 <div class="font-black text-sm">Download Orders Financial CSV</div>
                                 <div class="text-[11px] font-normal text-purple-200">Export ${filtered.length} orders matching active date & condition filter</div>
+                            </div>
+                        </button>
+
+                        <button onclick="app.downloadUsersCsv()" class="p-4 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-3 transition shadow-sm">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                            <div class="text-left">
+                                <div class="font-black text-sm">Download Registered Users Sheet (CSV)</div>
+                                <div class="text-[11px] font-normal text-emerald-200">Export all ${this.getAllRegisteredUsers().length} user accounts with signup details up to right now</div>
                             </div>
                         </button>
 
@@ -5666,8 +5809,8 @@ class CampusAdminApp {
         this.showToast(`Downloaded RFC CSV: ${filename}!`);
     }
 
-    downloadTextFile(filename, textContent) {
-        const blob = new Blob([textContent], { type: "text/plain;charset=utf-8;" });
+    downloadTextFile(filename, textContent, mimeType = "text/plain;charset=utf-8;") {
+        const blob = new Blob([textContent], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -5676,7 +5819,7 @@ class CampusAdminApp {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        this.showToast(`Downloaded Text File: ${filename}!`);
+        this.showToast(`Downloaded: ${filename}!`);
     }
 
     // ==========================================
@@ -6202,17 +6345,29 @@ class CampusAdminApp {
 
     openConfigModal() {
         const modal = document.getElementById("modal-generic");
+        const secMaint = this.systemConfig.sectionMaintenance || {};
+        const sectionsList = [
+            { key: 'orders', name: 'Campus Mart & Orders', icon: 'shopping-bag' },
+            { key: 'cabs', name: 'Cab Pooling & Rides', icon: 'car' },
+            { key: 'meals', name: 'Meal Circles', icon: 'utensils' },
+            { key: 'rentals', name: 'Item Rentals', icon: 'package' },
+            { key: 'lostFound', name: 'Lost & Found', icon: 'search' },
+            { key: 'courier', name: 'Intra-Campus Courier', icon: 'truck' },
+            { key: 'wallet', name: 'Wallet & Top-Up', icon: 'wallet' },
+            { key: 'riders', name: 'Rider Dispatch Fleet', icon: 'bike' }
+        ];
+
         modal.innerHTML = `
             <div class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 z-50">
-                <div class="modal-content bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200">
+                <div class="modal-content bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <h3 class="text-base font-extrabold text-slate-900">Configure Client App Version Policy</h3>
+                        <h3 class="text-base font-extrabold text-slate-900">Configure Client App Version & Maintenance Policy</h3>
                         <button onclick="app.closeModal()" class="font-bold text-slate-400 text-xl">&times;</button>
                     </div>
 
                     <form onsubmit="app.submitConfig(event)" class="space-y-4 mt-4 text-xs">
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Minimum Required Version:</label>
+                            <label class="block font-bold text-slate-700 mb-1">Minimum Required App Version:</label>
                             <input type="text" id="cfg-version" value="${this.systemConfig.minAppVersion}" placeholder="e.g. 2.4.0" class="w-full px-3 py-2 border border-slate-200 rounded-xl" />
                         </div>
 
@@ -6224,23 +6379,50 @@ class CampusAdminApp {
                             </div>
                         </label>
 
-                        <label class="flex items-start gap-2.5 font-bold text-slate-800 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                            <input type="checkbox" id="cfg-maint" ${this.systemConfig.maintenanceMode ? 'checked' : ''} class="mt-0.5 rounded text-purple-700" />
-                            <div>
-                                <span>Activate Global Maintenance Mode</span>
-                                <div class="text-[11px] text-slate-500 font-normal">Displays campus maintenance banner and pauses requests.</div>
+                        <!-- Global Maintenance Switch -->
+                        <div class="p-3.5 rounded-xl ${this.systemConfig.maintenanceMode ? 'bg-rose-50 border border-rose-200' : 'bg-slate-50 border border-slate-100'} space-y-2">
+                            <label class="flex items-start gap-2.5 font-bold text-slate-800 cursor-pointer">
+                                <input type="checkbox" id="cfg-maint" ${this.systemConfig.maintenanceMode ? 'checked' : ''} class="mt-0.5 rounded text-rose-600" />
+                                <div>
+                                    <span class="text-rose-900 font-extrabold">Activate Global Maintenance Mode</span>
+                                    <div class="text-[11px] text-slate-500 font-normal">
+                                        Apps that are <strong>not in any transaction state</strong> immediately stop their work on user end. Active transactions (orders accepted, ongoing rides) are permitted to complete.
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Section Specific Maintenance Options -->
+                        <div class="pt-2">
+                            <div class="font-bold text-slate-700 mb-2">Section-Specific Maintenance Options:</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                ${sectionsList.map(s => {
+                                    const en = !!(secMaint[s.key]?.enabled);
+                                    return `
+                                        <label class="flex items-center justify-between p-2.5 rounded-xl border ${en ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-100'} cursor-pointer">
+                                            <div class="flex items-center gap-2">
+                                                <i data-lucide="${s.icon}" class="w-3.5 h-3.5 text-purple-700"></i>
+                                                <span class="font-bold text-slate-800">${s.name}</span>
+                                            </div>
+                                            <input type="checkbox" id="cfg-sec-${s.key}" ${en ? 'checked' : ''} class="rounded text-amber-600" />
+                                        </label>
+                                    `;
+                                }).join("")}
                             </div>
-                        </label>
+                        </div>
 
                         <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
                             <button type="button" onclick="app.closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold">Cancel</button>
-                            <button type="submit" class="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold">Save Policy</button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold">Save & Broadcast Policy</button>
                         </div>
                     </form>
                 </div>
             </div>
         `;
         modal.classList.remove("hidden");
+        if (window.lucide) {
+            try { lucide.createIcons(); } catch (e) {}
+        }
     }
 
     submitConfig(e) {
@@ -6252,12 +6434,627 @@ class CampusAdminApp {
         this.systemConfig.minAppVersion = ver;
         this.systemConfig.forceUpdateEnabled = force;
         this.systemConfig.maintenanceMode = maint;
+        this.systemConfig.allowActiveTransactions = true;
+
+        if (!this.systemConfig.sectionMaintenance) {
+            this.systemConfig.sectionMaintenance = JSON.parse(JSON.stringify(DEFAULT_SYSTEM_CONFIG.sectionMaintenance));
+        }
+
+        const secKeys = ['orders', 'cabs', 'meals', 'rentals', 'lostFound', 'courier', 'wallet', 'riders'];
+        secKeys.forEach(k => {
+            const el = document.getElementById(`cfg-sec-${k}`);
+            if (el && this.systemConfig.sectionMaintenance[k]) {
+                this.systemConfig.sectionMaintenance[k].enabled = el.checked;
+            }
+        });
+
         this.save("campus_system_config", this.systemConfig);
 
-        this.recordAudit("SYSTEM_CONFIG", "SYS_VER", `Updated minimum app version requirement to ${ver} (Force=${force}, Maint=${maint}).`, "WARNING");
+        if (window.cloudSync) {
+            window.cloudSync.syncMaintenanceMode({
+                globalMaintenance: this.systemConfig.maintenanceMode,
+                allowActiveTransactions: true,
+                message: this.systemConfig.maintenanceMessage,
+                sectionMaintenance: this.systemConfig.sectionMaintenance
+            });
+        }
+
+        this.recordAudit("SYSTEM_CONFIG", "POLICY_UPDATE", `Updated policy: Version=${ver}, Force=${force}, GlobalMaint=${maint}.`, "WARNING");
         this.closeModal();
-        this.showToast("System configuration updated!");
+        this.showToast("System configuration and maintenance policies updated!");
+        this.renderGlobalMaintenanceBanner();
         this.renderCurrentTab();
+    }
+
+    openMaintenanceModal() {
+        const modal = document.getElementById("modal-generic");
+        if (!modal) return;
+        const isGlobal = !!this.systemConfig.maintenanceMode;
+        const secMaint = this.systemConfig.sectionMaintenance || {};
+        const sectionsList = [
+            { key: 'orders', name: 'Campus Mart & Orders', icon: 'shopping-bag' },
+            { key: 'cabs', name: 'Cab Pooling & Rides', icon: 'car' },
+            { key: 'meals', name: 'Meal Circles', icon: 'utensils' },
+            { key: 'rentals', name: 'Item Rentals', icon: 'package' },
+            { key: 'lostFound', name: 'Lost & Found', icon: 'search' },
+            { key: 'courier', name: 'Intra-Campus Courier', icon: 'truck' },
+            { key: 'wallet', name: 'Wallet & Top-Up', icon: 'wallet' },
+            { key: 'riders', name: 'Rider Dispatch Fleet', icon: 'bike' }
+        ];
+
+        modal.innerHTML = `
+            <div class="modal-backdrop fixed inset-0 flex items-center justify-center p-4 z-50">
+                <div class="modal-content bg-white w-full max-w-2xl rounded-3xl p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center">
+                                <i data-lucide="sliders" class="w-4 h-4"></i>
+                            </div>
+                            <h3 class="text-base font-extrabold text-slate-900">Campus Maintenance Mode & Section Control Center</h3>
+                        </div>
+                        <button onclick="app.closeModal()" class="font-bold text-slate-400 text-xl">&times;</button>
+                    </div>
+
+                    <form onsubmit="app.submitMaintenancePolicy(event)" class="space-y-5 mt-4 text-xs">
+                        <!-- Global Maintenance Switch -->
+                        <div class="p-4 rounded-2xl ${isGlobal ? 'bg-rose-50 border border-rose-200' : 'bg-slate-50 border border-slate-200'}">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" id="maint-global" ${isGlobal ? 'checked' : ''} class="mt-1 w-4 h-4 rounded text-rose-600 focus:ring-rose-500" />
+                                <div class="space-y-1">
+                                    <div class="text-sm font-black text-slate-900">Activate Global Maintenance Mode</div>
+                                    <div class="text-slate-600">
+                                        When activated, user apps that are <strong>not in any transaction state</strong> immediately stop their work from the users' end. Active transactions are permitted to complete.
+                                    </div>
+                                </div>
+                            </label>
+                            <div class="mt-3">
+                                <label class="block font-bold text-slate-700 mb-1">Global User Announcement Message:</label>
+                                <input type="text" id="maint-global-msg" value="${this.systemConfig.maintenanceMessage || 'CampusApp is currently in scheduled maintenance. Active orders, rides, or transactions may complete, but all other features are temporarily halted.'}" class="w-full px-3 py-2 border border-slate-200 rounded-xl" />
+                            </div>
+                        </div>
+
+                        <!-- Section Specific Maintenance Matrix -->
+                        <div>
+                            <div class="font-bold text-slate-800 mb-2">Section-Specific Maintenance Switches (Selectively pause specific services):</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                ${sectionsList.map(s => {
+                                    const enabled = !!(secMaint[s.key]?.enabled);
+                                    return `
+                                        <label class="flex items-center justify-between p-3 rounded-xl border ${enabled ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'} cursor-pointer hover:bg-slate-100/80 transition">
+                                            <div class="flex items-center gap-2.5">
+                                                <i data-lucide="${s.icon}" class="w-4 h-4 text-purple-700"></i>
+                                                <span class="font-bold text-slate-900">${s.name}</span>
+                                            </div>
+                                            <input type="checkbox" name="sec-maint-${s.key}" id="sec-maint-${s.key}" ${enabled ? 'checked' : ''} class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500" />
+                                        </label>
+                                    `;
+                                }).join("")}
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                            <button type="button" onclick="app.closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold">Cancel</button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold shadow-sm">Save & Broadcast Policy</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        modal.classList.remove("hidden");
+        if (window.lucide) {
+            try { lucide.createIcons(); } catch (e) {}
+        }
+    }
+
+    submitMaintenancePolicy(e) {
+        e.preventDefault();
+        const globalMaint = document.getElementById("maint-global").checked;
+        const globalMsg = document.getElementById("maint-global-msg").value.trim();
+
+        this.systemConfig.maintenanceMode = globalMaint;
+        this.systemConfig.allowActiveTransactions = true;
+        if (globalMsg) this.systemConfig.maintenanceMessage = globalMsg;
+
+        if (!this.systemConfig.sectionMaintenance) {
+            this.systemConfig.sectionMaintenance = JSON.parse(JSON.stringify(DEFAULT_SYSTEM_CONFIG.sectionMaintenance));
+        }
+
+        const secKeys = ['orders', 'cabs', 'meals', 'rentals', 'lostFound', 'courier', 'wallet', 'riders'];
+        secKeys.forEach(k => {
+            const cb = document.getElementById(`sec-maint-${k}`);
+            if (cb && this.systemConfig.sectionMaintenance[k]) {
+                this.systemConfig.sectionMaintenance[k].enabled = cb.checked;
+            }
+        });
+
+        this.save("campus_system_config", this.systemConfig);
+
+        if (window.cloudSync) {
+            window.cloudSync.syncMaintenanceMode({
+                globalMaintenance: this.systemConfig.maintenanceMode,
+                allowActiveTransactions: true,
+                message: this.systemConfig.maintenanceMessage,
+                sectionMaintenance: this.systemConfig.sectionMaintenance
+            });
+        }
+
+        this.recordAudit("SYSTEM_MAINTENANCE", "POLICY_UPDATE", `Updated maintenance policy: Global=${globalMaint}, PausedSections=${secKeys.filter(k => this.systemConfig.sectionMaintenance[k]?.enabled).join(", ") || "None"}.`, "WARNING");
+        this.closeModal();
+        this.showToast("Maintenance policy updated and broadcast to all campus apps!", "success");
+        this.renderGlobalMaintenanceBanner();
+        this.renderCurrentTab();
+    }
+
+    setGlobalMaintenance(enabled, customMessage = "") {
+        this.systemConfig.maintenanceMode = !!enabled;
+        this.systemConfig.allowActiveTransactions = true; // Non-transactional sessions immediately stop; ongoing transactions complete
+        if (customMessage) {
+            this.systemConfig.maintenanceMessage = customMessage;
+        }
+        this.save("campus_system_config", this.systemConfig);
+
+        if (window.cloudSync) {
+            window.cloudSync.syncMaintenanceMode({
+                globalMaintenance: this.systemConfig.maintenanceMode,
+                allowActiveTransactions: true,
+                message: this.systemConfig.maintenanceMessage,
+                sectionMaintenance: this.systemConfig.sectionMaintenance
+            });
+        }
+
+        const actionText = enabled 
+            ? "ACTIVATED GLOBAL MAINTENANCE MODE (Non-transactional sessions halted on user end; ongoing transactions allowed to finish)" 
+            : "DEACTIVATED GLOBAL MAINTENANCE MODE (All campus services restored to normal)";
+        this.recordAudit("SYSTEM_MAINTENANCE", "GLOBAL", actionText, enabled ? "WARNING" : "INFO");
+
+        this.showToast(enabled 
+            ? "🚨 Global Maintenance Mode ACTIVATED! Non-transactional user app sessions are halted." 
+            : "✅ Global Maintenance Mode DEACTIVATED. All campus services are fully operational.", 
+            enabled ? "warning" : "success"
+        );
+
+        this.renderGlobalMaintenanceBanner();
+        this.renderCurrentTab();
+    }
+
+    toggleSectionMaintenance(sectionKey, forceState = null, customMessage = "") {
+        if (!this.systemConfig.sectionMaintenance) {
+            this.systemConfig.sectionMaintenance = JSON.parse(JSON.stringify(DEFAULT_SYSTEM_CONFIG.sectionMaintenance));
+        }
+        const sec = this.systemConfig.sectionMaintenance[sectionKey];
+        if (!sec) return;
+
+        const nextState = forceState !== null ? !!forceState : !sec.enabled;
+        sec.enabled = nextState;
+        if (customMessage) {
+            sec.message = customMessage;
+        }
+
+        this.save("campus_system_config", this.systemConfig);
+
+        if (window.cloudSync) {
+            window.cloudSync.syncSectionMaintenance({
+                section: sectionKey,
+                enabled: sec.enabled,
+                sectionName: sec.name,
+                message: sec.message,
+                allowActiveTransactions: true
+            });
+        }
+
+        const msg = sec.enabled
+            ? `⚠️ Maintenance ACTIVATED for ${sec.name}! Users cannot start new bookings in this section. Other sections continue as normal.`
+            : `✅ Maintenance DEACTIVATED for ${sec.name}! Service restored to normal.`;
+
+        this.recordAudit("SECTION_MAINTENANCE", sectionKey.toUpperCase(), `Section maintenance for ${sec.name} set to ${sec.enabled ? 'ACTIVE (Paused)' : 'OFF (Operational)'}. Other sections unaffected.`, sec.enabled ? "WARNING" : "INFO");
+        this.showToast(msg, sec.enabled ? "warning" : "success");
+
+        this.renderCurrentTab();
+    }
+
+    resumeAllSections() {
+        if (!this.systemConfig.sectionMaintenance) return;
+        Object.keys(this.systemConfig.sectionMaintenance).forEach(k => {
+            this.systemConfig.sectionMaintenance[k].enabled = false;
+        });
+        this.save("campus_system_config", this.systemConfig);
+        if (window.cloudSync) {
+            window.cloudSync.syncMaintenanceMode({
+                globalMaintenance: this.systemConfig.maintenanceMode,
+                allowActiveTransactions: true,
+                message: this.systemConfig.maintenanceMessage,
+                sectionMaintenance: this.systemConfig.sectionMaintenance
+            });
+        }
+        this.recordAudit("SECTION_MAINTENANCE", "ALL", "Resumed all sections. Normal operations restored across all campus services.", "INFO");
+        this.showToast("✅ All sections have been resumed to normal operations!", "success");
+        this.renderCurrentTab();
+    }
+
+    renderGlobalMaintenanceBanner() {
+        const slot = document.getElementById("global-maintenance-banner-slot");
+        if (!slot) return;
+
+        if (!this.systemConfig.maintenanceMode) {
+            slot.innerHTML = "";
+            return;
+        }
+
+        slot.innerHTML = `
+            <div id="global-maintenance-banner" class="bg-gradient-to-r from-amber-600 via-rose-600 to-amber-700 text-white px-4 py-2.5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-300/40">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-black/25 flex items-center justify-center shrink-0 animate-pulse text-amber-200">
+                        <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-black tracking-wide uppercase flex items-center gap-2">
+                            <span>🚨 Global Maintenance Mode Active</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-black/30 font-bold border border-white/20">Transaction Grace Policy</span>
+                        </div>
+                        <div class="text-[11px] text-white/90 font-medium">
+                            Non-transactional user app sessions are stopped immediately. Active in-flight transactions (orders, cab rides, rentals) are permitted to finalize.
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <button onclick="app.openMaintenanceModal()" class="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                        <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+                        <span>Section Controls</span>
+                    </button>
+                    <button onclick="app.setGlobalMaintenance(false)" class="px-3.5 py-1.5 rounded-xl bg-white text-rose-700 hover:bg-rose-50 text-xs font-black transition shadow-sm flex items-center gap-1.5">
+                        <i data-lucide="power" class="w-3.5 h-3.5"></i>
+                        <span>Deactivate Mode</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        if (window.lucide) {
+            try { lucide.createIcons(); } catch (e) {}
+        }
+    }
+
+    renderMaintenanceControlCenter() {
+        const isGlobalMaint = !!this.systemConfig.maintenanceMode;
+        const secMaint = this.systemConfig.sectionMaintenance || {};
+        const sectionsList = [
+            { key: 'orders', name: 'Campus Mart & Orders', icon: 'shopping-bag', desc: 'Food delivery, kiosk items & tuck shop' },
+            { key: 'cabs', name: 'Cab Pooling & Rides', icon: 'car', desc: 'Auto & cab seat sharing routes' },
+            { key: 'meals', name: 'Meal Circles', icon: 'utensils', desc: 'Hostel mess & group food sharing' },
+            { key: 'rentals', name: 'Item Rentals', icon: 'package', desc: 'Academic gear, electronics & cycles' },
+            { key: 'lostFound', name: 'Lost & Found', icon: 'search', desc: 'Item recovery & claim verification' },
+            { key: 'courier', name: 'Intra-Campus Courier', icon: 'truck', desc: 'Hostel-to-hostel parcel transfers' },
+            { key: 'wallet', name: 'Wallet & Top-Up', icon: 'wallet', desc: 'Student escrow deposits & balances' },
+            { key: 'riders', name: 'Rider Dispatch Fleet', icon: 'bike', desc: 'Student delivery runners & duty status' }
+        ];
+
+        const activeSecCount = sectionsList.filter(s => secMaint[s.key]?.enabled).length;
+
+        return `
+            <!-- System Maintenance & Service Outage Control Center -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full ${isGlobalMaint ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'}"></span>
+                            <h3 class="text-sm font-extrabold text-slate-900">System Maintenance & Service Outage Control</h3>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5">Control global campus system lockdown or selectively pause individual sections while keeping others operational.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="app.openMaintenanceModal()" class="px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs border border-purple-200 transition flex items-center gap-1.5 shadow-2xs">
+                            <i data-lucide="settings" class="w-3.5 h-3.5 text-purple-700"></i>
+                            <span>Configure Messages</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1. Master Global Maintenance Control Banner -->
+                <div class="p-4 sm:p-5 rounded-2xl border ${isGlobalMaint ? 'bg-gradient-to-r from-rose-50 to-amber-50 border-rose-200' : 'bg-gradient-to-r from-slate-50 to-purple-50/40 border-slate-200/90'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all">
+                    <div class="flex items-start sm:items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-xl ${isGlobalMaint ? 'bg-rose-500 text-white shadow-md shadow-rose-950/20 animate-pulse' : 'bg-slate-200 text-slate-600'} flex items-center justify-center shrink-0">
+                            <i data-lucide="${isGlobalMaint ? 'alert-octagon' : 'shield-check'}" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-extrabold text-sm text-slate-900">Global Maintenance Mode</span>
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isGlobalMaint ? 'bg-rose-600 text-white shadow-2xs' : 'bg-emerald-100 text-emerald-800'}">
+                                    ${isGlobalMaint ? '🔴 GLOBAL MAINTENANCE ACTIVE' : '🟢 NORMAL OPERATIONS'}
+                                </span>
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-100 text-purple-800">
+                                    In-Flight Transaction Grace Active
+                                </span>
+                            </div>
+                            <p class="text-xs ${isGlobalMaint ? 'text-rose-900 font-medium' : 'text-slate-500'} mt-1 max-w-2xl">
+                                <strong>Rule:</strong> When activated, user apps that are <em>not in any transaction state</em> immediately stop working on the users' end. Active transactions (orders accepted, rides in progress, rentals active) are permitted to complete normally.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-start md:self-auto shrink-0">
+                        <button 
+                            onclick="app.setGlobalMaintenance(${!isGlobalMaint})" 
+                            class="px-4 py-2.5 rounded-xl font-black text-xs transition transform active:scale-95 shadow-sm cursor-pointer flex items-center gap-2 ${isGlobalMaint ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-rose-600 hover:bg-rose-700 text-white'}">
+                            <i data-lucide="${isGlobalMaint ? 'play-circle' : 'power'}" class="w-4 h-4"></i>
+                            <span>${isGlobalMaint ? 'Deactivate Global Mode' : 'Activate Global Maintenance Mode'}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Section-Specific Maintenance Matrix -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                                <span>Section-Specific Maintenance Options</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${activeSecCount > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'}">
+                                    ${activeSecCount} of ${sectionsList.length} Sections Paused
+                                </span>
+                            </h4>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Pause a specific section for maintenance while keeping all other sections functioning as normal.</p>
+                        </div>
+                        ${activeSecCount > 0 ? `
+                            <button onclick="app.resumeAllSections()" class="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 transition">
+                                Resume All Sections
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        ${sectionsList.map(s => {
+                            const isPaused = !!(secMaint[s.key]?.enabled);
+                            return `
+                                <div class="p-3.5 rounded-xl border ${isPaused ? 'bg-amber-50/70 border-amber-300' : 'bg-slate-50 border-slate-200/80'} flex flex-col justify-between transition-all">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-7 h-7 rounded-lg ${isPaused ? 'bg-amber-500 text-white' : 'bg-purple-100 text-purple-800'} flex items-center justify-center shrink-0">
+                                                    <i data-lucide="${s.icon}" class="w-3.5 h-3.5"></i>
+                                                </div>
+                                                <span class="font-bold text-xs text-slate-900">${s.name}</span>
+                                            </div>
+                                            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isPaused ? 'bg-amber-200 text-amber-900' : 'bg-emerald-100 text-emerald-800'}">
+                                                ${isPaused ? 'MAINTENANCE' : 'ACTIVE'}
+                                            </span>
+                                        </div>
+                                        <p class="text-[10px] text-slate-500 line-clamp-1">${s.desc}</p>
+                                    </div>
+                                    <div class="mt-3 pt-2.5 border-t ${isPaused ? 'border-amber-200' : 'border-slate-200/60'} flex items-center justify-between text-xs">
+                                        <span class="text-[10px] font-medium text-slate-400">${isPaused ? 'Halted for users' : 'All users normal'}</span>
+                                        <button 
+                                            onclick="app.toggleSectionMaintenance('${s.key}')" 
+                                            class="px-2.5 py-1 rounded-lg font-bold text-[11px] transition shadow-2xs ${isPaused ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'}">
+                                            ${isPaused ? 'Resume' : 'Pause'}
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join("")}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ==========================================
+    // USER ACCOUNTS MASTER REGISTRY & CSV ENGINE
+    // ==========================================
+    getAllRegisteredUsers() {
+        const userMap = new Map();
+
+        // 1. Ingest all students
+        if (Array.isArray(this.students)) {
+            this.students.forEach(st => {
+                const key = (st.email || st.rollNo || "").toLowerCase().trim();
+                if (key) {
+                    userMap.set(key, {
+                        ...st,
+                        role: st.riderStatus === "ACTIVE" ? "Student & Rider" : "Student"
+                    });
+                }
+            });
+        }
+
+        // 2. Ingest any riders not already in students
+        if (Array.isArray(this.riders)) {
+            this.riders.forEach(r => {
+                const key = (r.email || r.rollNo || "").toLowerCase().trim();
+                if (key) {
+                    if (userMap.has(key)) {
+                        const existing = userMap.get(key);
+                        existing.role = "Student & Rider";
+                        existing.riderStatus = r.riderStatus || existing.riderStatus || "ACTIVE";
+                    } else {
+                        userMap.set(key, {
+                            email: r.email,
+                            name: r.name,
+                            phone: r.phone || "+91 9800000000",
+                            rollNo: r.rollNo || "N/A",
+                            hostel: "Campus Residence",
+                            stream: r.department || "Engineering",
+                            className: "Campus Rider",
+                            upiId: (r.email ? r.email.split("@")[0] : "rider") + "@upi",
+                            walletBalance: r.walletBalance || 0,
+                            isSignedUp: true,
+                            isVerified: true,
+                            studentStatus: "ACTIVE",
+                            riderStatus: r.riderStatus || "ACTIVE",
+                            role: "Rider",
+                            registeredAt: r.registeredAt || "10 Oct 2026, 09:00 AM",
+                            registeredAtIso: r.registeredAtIso || "2026-10-10T03:30:00.000Z"
+                        });
+                    }
+                }
+            });
+        }
+
+        return Array.from(userMap.values());
+    }
+
+    registerOrUpdateUser(userData, isBackground = false) {
+        if (!userData || (!userData.email && !userData.rollNo)) return;
+        const email = (userData.email || "").toLowerCase().trim();
+        const rollNo = (userData.rollNo || "").trim();
+
+        const existingIdx = this.students.findIndex(s => 
+            (email && s.email && s.email.toLowerCase() === email) || 
+            (rollNo && s.rollNo && s.rollNo.toLowerCase() === rollNo.toLowerCase())
+        );
+
+        const now = new Date();
+        const istStr = now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
+        const isoStr = now.toISOString();
+
+        if (existingIdx >= 0) {
+            // Existing user - update their profile details while preserving their original registeredAt timestamp
+            const prev = this.students[existingIdx];
+            this.students[existingIdx] = {
+                ...prev,
+                ...userData,
+                email: email || prev.email,
+                name: userData.name || prev.name,
+                phone: userData.phone || prev.phone,
+                rollNo: rollNo || prev.rollNo,
+                hostel: userData.hostel || prev.hostel,
+                stream: userData.stream || prev.stream,
+                className: userData.className || prev.className,
+                upiId: userData.upiId || prev.upiId,
+                walletBalance: userData.walletBalance !== undefined ? userData.walletBalance : prev.walletBalance,
+                studentStatus: userData.studentStatus || prev.studentStatus || "ACTIVE",
+                riderStatus: userData.riderStatus || prev.riderStatus || "ACTIVE",
+                isSignedUp: true,
+                isVerified: userData.isVerified !== undefined ? userData.isVerified : prev.isVerified,
+                registeredAt: prev.registeredAt || istStr,
+                registeredAtIso: prev.registeredAtIso || isoStr,
+                lastActiveAt: istStr
+            };
+            if (!isBackground && this.isUnlocked) {
+                this.showToast(`👤 Profile updated for ${userData.name || email}`, "info");
+            }
+        } else {
+            // Brand new user joining the app
+            const newUser = {
+                email: email,
+                name: userData.name || (email.split("@")[0] ? email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "New Campus User"),
+                phone: userData.phone || "+91 9800000000",
+                rollNo: rollNo || ("24CS" + Math.floor(100 + Math.random() * 900)),
+                hostel: userData.hostel || "Hostel Block 3",
+                stream: userData.stream || "Computer Science",
+                className: userData.className || "B.Tech Year 1",
+                upiId: userData.upiId || (email.split("@")[0] + "@upi"),
+                walletBalance: userData.walletBalance !== undefined ? userData.walletBalance : 100,
+                isSignedUp: true,
+                isVerified: userData.isVerified !== undefined ? userData.isVerified : true,
+                studentStatus: userData.studentStatus || "ACTIVE",
+                studentBlockReason: null,
+                studentBlockUntil: 0,
+                warningMessage: null,
+                riderStatus: userData.riderStatus || "ACTIVE",
+                riderBlockReason: null,
+                riderBlockUntil: 0,
+                registeredAt: userData.registeredAt || istStr,
+                registeredAtIso: userData.registeredAtIso || isoStr,
+                lastActiveAt: istStr
+            };
+            this.students.unshift(newUser);
+            if (!isBackground) {
+                this.playOrderChime();
+            }
+            if (!isBackground && this.isUnlocked) {
+                this.showToast(`🎉 New user registered in app: ${newUser.name} (${newUser.email}) - Added to User Sheet!`, "success");
+            }
+            this.recordAudit("USER_REGISTRATION", newUser.email, `New user account created in app: ${newUser.name} [Roll: ${newUser.rollNo}, Stream: ${newUser.stream}]. Auto-logged in Master Users Sheet.`, "INFO");
+        }
+
+        this.save("campus_students_list", this.students);
+        this.updateSectionGrid("students");
+        if (this.selectedTab === 2) {
+            const countBadge = document.getElementById("students-count-badge");
+            if (countBadge) countBadge.textContent = `${this.students.length} Accounts in Registry`;
+        }
+    }
+
+    downloadUsersCsv() {
+        const now = new Date();
+        const exportCutoffIST = now.toLocaleString("en-IN", { 
+            timeZone: "Asia/Kolkata", 
+            dateStyle: "full", 
+            timeStyle: "medium" 
+        });
+        const fileTs = now.getFullYear() + "-" + 
+            String(now.getMonth() + 1).padStart(2, "0") + "-" + 
+            String(now.getDate()).padStart(2, "0") + "_" + 
+            String(now.getHours()).padStart(2, "0") + "-" + 
+            String(now.getMinutes()).padStart(2, "0") + "-" + 
+            String(now.getSeconds()).padStart(2, "0");
+        const filename = `CampusApp_Registered_Users_${fileTs}.csv`;
+
+        const users = this.getAllRegisteredUsers();
+
+        if (users.length === 0) {
+            this.showToast("No registered user accounts found to download.", "warning");
+            return;
+        }
+
+        // CSV Lines with metadata block
+        const lines = [];
+        lines.push(`"# CampusApp Official User Registry Master Sheet"`);
+        lines.push(`"# Export Date & Time (IST Cutoff): ${exportCutoffIST}"`);
+        lines.push(`"# Total Accounts Registered in App: ${users.length}"`);
+        lines.push(`"# Auto-Synchronized Realtime with App Registrations"`);
+        lines.push(`""`);
+
+        // Column headers
+        const headers = [
+            "S.No",
+            "Student ID / Roll No",
+            "Full Name",
+            "Email Address",
+            "Phone Number",
+            "Hostel / Residence Block",
+            "Academic Stream / Department",
+            "Class / Year of Study",
+            "UPI ID",
+            "App Role",
+            "Wallet Balance (INR)",
+            "Student Status",
+            "Rider Duty Status",
+            "Verification Status",
+            "Account Registration Date & Time",
+            "Export Cutoff Timestamp"
+        ];
+        lines.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(","));
+
+        // Rows
+        users.forEach((u, idx) => {
+            const row = [
+                idx + 1,
+                u.rollNo || "N/A",
+                u.name || "N/A",
+                u.email || "N/A",
+                u.phone || "N/A",
+                u.hostel || "N/A",
+                u.stream || u.department || "N/A",
+                u.className || "N/A",
+                u.upiId || "N/A",
+                u.role || (u.riderStatus === "ACTIVE" ? "Student & Rider" : "Student"),
+                u.walletBalance !== undefined ? u.walletBalance : 0,
+                u.studentStatus || "ACTIVE",
+                u.riderStatus || "ACTIVE",
+                u.isVerified ? "VERIFIED" : "PENDING_VERIFY",
+                u.registeredAt || "N/A",
+                exportCutoffIST
+            ];
+            lines.push(row.map(val => {
+                const s = String(val !== null && val !== undefined ? val : "");
+                return `"${s.replace(/"/g, '""')}"`;
+            }).join(","));
+        });
+
+        // Add UTF-8 BOM so Excel opens properly without encoding issues
+        const csvContent = "\uFEFF" + lines.join("\r\n");
+        this.downloadTextFile(filename, csvContent, "text/csv;charset=utf-8;");
+
+        this.showToast(`📊 Downloaded users sheet (${users.length} accounts up to ${exportCutoffIST})!`, "success");
+        this.recordAudit("USER_REGISTRY_CSV_EXPORT", "ALL_USERS", `Downloaded complete user accounts registry CSV (${users.length} accounts) up to ${exportCutoffIST}.`, "INFO");
     }
 
     // ==========================================
