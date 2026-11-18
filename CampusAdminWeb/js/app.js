@@ -160,6 +160,15 @@ class CampusAdminApp {
             this.systemConfig.allowActiveTransactions = true;
             this.save("campus_system_config", this.systemConfig);
         }
+        if (this.systemConfig.maintenanceMode && this.systemConfig.sectionMaintenance) {
+            // When global maintenance is active, ensure all sections are enabled by default
+            Object.keys(this.systemConfig.sectionMaintenance).forEach(k => {
+                if (this.systemConfig.sectionMaintenance[k]) {
+                    this.systemConfig.sectionMaintenance[k].enabled = true;
+                }
+            });
+            this.save("campus_system_config", this.systemConfig);
+        }
 
         // Ensure students list has all seed registered users and registration timestamps
         if (Array.isArray(this.students) && typeof SEED_STUDENTS !== "undefined") {
@@ -6345,6 +6354,7 @@ class CampusAdminApp {
 
     openConfigModal() {
         const modal = document.getElementById("modal-generic");
+        const isGlobal = !!this.systemConfig.maintenanceMode;
         const secMaint = this.systemConfig.sectionMaintenance || {};
         const sectionsList = [
             { key: 'orders', name: 'Campus Mart & Orders', icon: 'shopping-bag' },
@@ -6380,9 +6390,9 @@ class CampusAdminApp {
                         </label>
 
                         <!-- Global Maintenance Switch -->
-                        <div class="p-3.5 rounded-xl ${this.systemConfig.maintenanceMode ? 'bg-rose-50 border border-rose-200' : 'bg-slate-50 border border-slate-100'} space-y-2">
+                        <div class="p-3.5 rounded-xl ${isGlobal ? 'bg-rose-50 border border-rose-200' : 'bg-slate-50 border border-slate-100'} space-y-2">
                             <label class="flex items-start gap-2.5 font-bold text-slate-800 cursor-pointer">
-                                <input type="checkbox" id="cfg-maint" ${this.systemConfig.maintenanceMode ? 'checked' : ''} class="mt-0.5 rounded text-rose-600" />
+                                <input type="checkbox" id="cfg-maint" ${isGlobal ? 'checked' : ''} onchange="app.onGlobalMaintenanceModalToggle(this.checked, 'config')" class="mt-0.5 rounded text-rose-600" />
                                 <div>
                                     <span class="text-rose-900 font-extrabold">Activate Global Maintenance Mode</span>
                                     <div class="text-[11px] text-slate-500 font-normal">
@@ -6390,16 +6400,23 @@ class CampusAdminApp {
                                     </div>
                                 </div>
                             </label>
+                            <div id="cfg-global-notice" class="${isGlobal ? '' : 'hidden'} p-2 rounded-lg bg-rose-100/70 border border-rose-300 text-[11px] text-rose-900 font-semibold flex items-center gap-1.5">
+                                <i data-lucide="info" class="w-3.5 h-3.5 text-rose-700 shrink-0"></i>
+                                <span>Global Maintenance Mode is active: all campus sections are ticked by default.</span>
+                            </div>
                         </div>
 
                         <!-- Section Specific Maintenance Options -->
                         <div class="pt-2">
-                            <div class="font-bold text-slate-700 mb-2">Section-Specific Maintenance Options:</div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold text-slate-700">Section-Specific Maintenance Options:</div>
+                                <span id="cfg-global-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 ${isGlobal ? '' : 'hidden'}">All Sections Ticked (Global Active)</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="cfg-sections-grid">
                                 ${sectionsList.map(s => {
-                                    const en = !!(secMaint[s.key]?.enabled);
+                                    const en = isGlobal || !!(secMaint[s.key]?.enabled);
                                     return `
-                                        <label class="flex items-center justify-between p-2.5 rounded-xl border ${en ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-100'} cursor-pointer">
+                                        <label id="cfg-sec-lbl-${s.key}" class="flex items-center justify-between p-2.5 rounded-xl border ${en ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-100'} cursor-pointer">
                                             <div class="flex items-center gap-2">
                                                 <i data-lucide="${s.icon}" class="w-3.5 h-3.5 text-purple-700"></i>
                                                 <span class="font-bold text-slate-800">${s.name}</span>
@@ -6499,7 +6516,7 @@ class CampusAdminApp {
                         <!-- Global Maintenance Switch -->
                         <div class="p-4 rounded-2xl ${isGlobal ? 'bg-rose-50 border border-rose-200' : 'bg-slate-50 border border-slate-200'}">
                             <label class="flex items-start gap-3 cursor-pointer">
-                                <input type="checkbox" id="maint-global" ${isGlobal ? 'checked' : ''} class="mt-1 w-4 h-4 rounded text-rose-600 focus:ring-rose-500" />
+                                <input type="checkbox" id="maint-global" ${isGlobal ? 'checked' : ''} onchange="app.onGlobalMaintenanceModalToggle(this.checked, 'maint')" class="mt-1 w-4 h-4 rounded text-rose-600 focus:ring-rose-500" />
                                 <div class="space-y-1">
                                     <div class="text-sm font-black text-slate-900">Activate Global Maintenance Mode</div>
                                     <div class="text-slate-600">
@@ -6507,6 +6524,10 @@ class CampusAdminApp {
                                     </div>
                                 </div>
                             </label>
+                            <div id="maint-global-notice" class="${isGlobal ? '' : 'hidden'} mt-2.5 p-2 rounded-lg bg-rose-100/70 border border-rose-300 text-[11px] text-rose-900 font-semibold flex items-center gap-1.5">
+                                <i data-lucide="info" class="w-3.5 h-3.5 text-rose-700 shrink-0"></i>
+                                <span>Global Maintenance Mode is active: all campus sections are ticked by default.</span>
+                            </div>
                             <div class="mt-3">
                                 <label class="block font-bold text-slate-700 mb-1">Global User Announcement Message:</label>
                                 <input type="text" id="maint-global-msg" value="${this.systemConfig.maintenanceMessage || 'CampusApp is currently in scheduled maintenance. Active orders, rides, or transactions may complete, but all other features are temporarily halted.'}" class="w-full px-3 py-2 border border-slate-200 rounded-xl" />
@@ -6515,12 +6536,15 @@ class CampusAdminApp {
 
                         <!-- Section Specific Maintenance Matrix -->
                         <div>
-                            <div class="font-bold text-slate-800 mb-2">Section-Specific Maintenance Switches (Selectively pause specific services):</div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold text-slate-800">Section-Specific Maintenance Switches (Selectively pause specific services):</div>
+                                <span id="maint-global-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 ${isGlobal ? '' : 'hidden'}">All Sections Ticked (Global Active)</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="maint-sections-grid">
                                 ${sectionsList.map(s => {
-                                    const enabled = !!(secMaint[s.key]?.enabled);
+                                    const enabled = isGlobal || !!(secMaint[s.key]?.enabled);
                                     return `
-                                        <label class="flex items-center justify-between p-3 rounded-xl border ${enabled ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'} cursor-pointer hover:bg-slate-100/80 transition">
+                                        <label id="sec-maint-lbl-${s.key}" class="flex items-center justify-between p-3 rounded-xl border ${enabled ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'} cursor-pointer hover:bg-slate-100/80 transition">
                                             <div class="flex items-center gap-2.5">
                                                 <i data-lucide="${s.icon}" class="w-4 h-4 text-purple-700"></i>
                                                 <span class="font-bold text-slate-900">${s.name}</span>
@@ -6543,6 +6567,38 @@ class CampusAdminApp {
         modal.classList.remove("hidden");
         if (window.lucide) {
             try { lucide.createIcons(); } catch (e) {}
+        }
+    }
+
+    onGlobalMaintenanceModalToggle(isChecked, mode = 'config') {
+        const secKeys = ['orders', 'cabs', 'meals', 'rentals', 'lostFound', 'courier', 'wallet', 'riders'];
+        const badge = document.getElementById(mode === 'config' ? 'cfg-global-badge' : 'maint-global-badge');
+        const notice = document.getElementById(mode === 'config' ? 'cfg-global-notice' : 'maint-global-notice');
+
+        if (badge) badge.classList.toggle('hidden', !isChecked);
+        if (notice) notice.classList.toggle('hidden', !isChecked);
+
+        if (isChecked) {
+            secKeys.forEach(k => {
+                if (mode === 'config') {
+                    const cb = document.getElementById(`cfg-sec-${k}`);
+                    const lbl = document.getElementById(`cfg-sec-lbl-${k}`);
+                    if (cb) cb.checked = true;
+                    if (lbl) {
+                        lbl.classList.remove('bg-slate-50', 'border-slate-100');
+                        lbl.classList.add('bg-amber-50', 'border-amber-300');
+                    }
+                } else if (mode === 'maint') {
+                    const cb = document.getElementById(`sec-maint-${k}`);
+                    const lbl = document.getElementById(`sec-maint-lbl-${k}`);
+                    if (cb) cb.checked = true;
+                    if (lbl) {
+                        lbl.classList.remove('bg-slate-50', 'border-slate-200');
+                        lbl.classList.add('bg-amber-50', 'border-amber-300');
+                    }
+                }
+            });
+            this.showToast("Global Maintenance selected: all sections ticked by default.", "info");
         }
     }
 
@@ -6591,6 +6647,27 @@ class CampusAdminApp {
         if (customMessage) {
             this.systemConfig.maintenanceMessage = customMessage;
         }
+
+        if (!this.systemConfig.sectionMaintenance) {
+            this.systemConfig.sectionMaintenance = JSON.parse(JSON.stringify(DEFAULT_SYSTEM_CONFIG.sectionMaintenance));
+        }
+
+        // When global maintenance is activated, all sections are ticked / enabled by default
+        if (enabled) {
+            Object.keys(this.systemConfig.sectionMaintenance).forEach(k => {
+                if (this.systemConfig.sectionMaintenance[k]) {
+                    this.systemConfig.sectionMaintenance[k].enabled = true;
+                }
+            });
+        } else {
+            // When deactivated, restore normal operations across all sections
+            Object.keys(this.systemConfig.sectionMaintenance).forEach(k => {
+                if (this.systemConfig.sectionMaintenance[k]) {
+                    this.systemConfig.sectionMaintenance[k].enabled = false;
+                }
+            });
+        }
+
         this.save("campus_system_config", this.systemConfig);
 
         if (window.cloudSync) {
@@ -6603,12 +6680,12 @@ class CampusAdminApp {
         }
 
         const actionText = enabled 
-            ? "ACTIVATED GLOBAL MAINTENANCE MODE (Non-transactional sessions halted on user end; ongoing transactions allowed to finish)" 
+            ? "ACTIVATED GLOBAL MAINTENANCE MODE (All sections placed under maintenance; non-transactional sessions halted on user end; ongoing transactions allowed to finish)" 
             : "DEACTIVATED GLOBAL MAINTENANCE MODE (All campus services restored to normal)";
         this.recordAudit("SYSTEM_MAINTENANCE", "GLOBAL", actionText, enabled ? "WARNING" : "INFO");
 
         this.showToast(enabled 
-            ? "🚨 Global Maintenance Mode ACTIVATED! Non-transactional user app sessions are halted." 
+            ? "🚨 Global Maintenance Mode ACTIVATED! All sections ticked by default; non-transactional user app sessions are halted." 
             : "✅ Global Maintenance Mode DEACTIVATED. All campus services are fully operational.", 
             enabled ? "warning" : "success"
         );
